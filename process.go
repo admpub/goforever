@@ -89,6 +89,7 @@ func (p *Process) start(name string) string {
 	wd, _ := os.Getwd()
 	abspath := filepath.Join(wd, p.Command)
 	dirpath := filepath.Dir(abspath)
+	basepath := filepath.Base(abspath)
 	fmt.Println(dirpath)
 	proc := &os.ProcAttr{
 		Dir: dirpath,
@@ -100,7 +101,7 @@ func (p *Process) start(name string) string {
 		},
 	}
 	args := append([]string{p.Name}, p.Args...)
-	process, err := os.StartProcess(p.Command, args, proc)
+	process, err := os.StartProcess(basepath, args, proc)
 	if err != nil {
 		log.Fatalf("%s failed. %s\n", p.Name, err)
 		return ""
