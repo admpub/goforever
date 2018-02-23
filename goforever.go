@@ -34,10 +34,16 @@ func init() {
 	flag.Usage = Usage
 	flag.Parse()
 	setConfig()
+
+	cmdPath, err := os.Executable()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	daemon = &Process{
 		Name:    "goforever",
 		Args:    []string{},
-		Command: "goforever",
+		Command: cmdPath,
 		Pidfile: config.Pidfile,
 		Logfile: config.Logfile,
 		Errfile: config.Errfile,
