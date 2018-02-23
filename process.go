@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"time"
 	"path/filepath"
+	//"syscall"
 )
 
 var ping = "1m"
@@ -100,7 +101,9 @@ func (p *Process) start(name string) string {
 			NewLog(p.Errfile),
 		},
 	}
-	args := append([]string{p.Name}, p.Args...)
+	args := append([]string{basepath}, p.Args...)
+	basepath = "./" + basepath
+	fmt.Printf("Args: %v %v %v", basepath, args, proc)
 	process, err := os.StartProcess(basepath, args, proc)
 	if err != nil {
 		log.Fatalf("%s failed. %s\n", p.Name, err)
