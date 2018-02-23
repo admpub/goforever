@@ -90,7 +90,7 @@ func (p *Process) start(name string) string {
 	abspath := filepath.Join(wd, p.Command)
 	fmt.Println(abspath)
 	proc := &os.ProcAttr{
-		Dir: wd,
+		Dir: abspath,
 		Env: os.Environ(),
 		Files: []*os.File{
 			os.Stdin,
