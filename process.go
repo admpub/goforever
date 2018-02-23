@@ -88,9 +88,10 @@ func (p *Process) start(name string) string {
 	p.Name = name
 	wd, _ := os.Getwd()
 	abspath := filepath.Join(wd, p.Command)
-	fmt.Println(abspath)
+	dirpath := filepath.Dir(abspath)
+	fmt.Println(dirpath)
 	proc := &os.ProcAttr{
-		Dir: abspath,
+		Dir: dirpath,
 		Env: os.Environ(),
 		Files: []*os.File{
 			os.Stdin,
