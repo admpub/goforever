@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/admpub/goforever"
 	httpF "github.com/admpub/goforever/http"
@@ -39,7 +40,7 @@ func init() {
 	daemon = &goforever.Process{
 		Name:    "goforever",
 		Args:    []string{},
-		Command: "goforever",
+		Command: filepath.Base(os.Args[0]),
 		Pidfile: config.Pidfile,
 		Logfile: config.Logfile,
 		Errfile: config.Errfile,
