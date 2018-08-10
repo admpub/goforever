@@ -65,7 +65,7 @@ type Process struct {
 func (p *Process) String() string {
 	js, err := json.Marshal(p)
 	if err != nil {
-		log.Print(err)
+		log.Println(err)
 		return ""
 	}
 	return string(js)
@@ -251,7 +251,7 @@ func (p *Process) watch() {
 		p.Status = "restarted"
 	case err := <-died:
 		p.release("killed")
-		log.Printf("%d %s killed = %#v", p.x.Pid, p.Name, err)
+		log.Printf("%d %s killed = %#v\n", p.x.Pid, p.Name, err)
 	}
 }
 
@@ -269,7 +269,7 @@ type Children map[string]*Process
 func (c Children) String() string {
 	js, err := json.Marshal(c)
 	if err != nil {
-		log.Print(err)
+		log.Println(err)
 		return ""
 	}
 	return string(js)

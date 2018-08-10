@@ -35,7 +35,7 @@ func (h *HTTP) HttpServer() {
 		}
 		return
 	}
-	log.Printf("SSL enabled.\n")
+	log.Println("SSL enabled.")
 	if err := http.ListenAndServeTLS(bindAddress, "cert.pem", "key.pem", nil); err != nil {
 		log.Fatal("ListenAndServeTLS: ", err)
 	}
@@ -72,7 +72,7 @@ func (h *HTTP) GetHandler(w http.ResponseWriter, r *http.Request) {
 		output, err = json.Marshal(h.daemon.Children.Get(r.URL.Path[1:]))
 	}
 	if err != nil {
-		log.Printf("Get Error: %#v", err)
+		log.Printf("Get Error: %#v\n", err)
 		return
 	}
 	fmt.Fprintf(w, "%s", output)
@@ -126,7 +126,7 @@ func (h *HTTP) AuthHandler(fn func(http.ResponseWriter, *http.Request)) http.Han
 		}
 		auth, ok := r.Header["Authorization"]
 		if !ok {
-			log.Printf("Unauthorized access to %s", url)
+			log.Printf("Unauthorized access to %s\n", url)
 			w.Header().Add("WWW-Authenticate", "basic realm=\"host\"")
 			w.WriteHeader(http.StatusUnauthorized)
 			fmt.Fprintf(w, "Not Authorized.")
@@ -134,19 +134,19 @@ func (h *HTTP) AuthHandler(fn func(http.ResponseWriter, *http.Request)) http.Han
 		}
 		encoded := strings.Split(auth[0], " ")
 		if len(encoded) != 2 || encoded[0] != "Basic" {
-			log.Printf("Strange Authorization %q", auth)
+			log.Printf("Strange Authorization %q\n", auth)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 		decoded, err := base64.StdEncoding.DecodeString(encoded[1])
 		if err != nil {
-			log.Printf("Cannot decode %q: %s", auth, err)
+			log.Printf("Cannot decode %q: %s\n", auth, err)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 		parts := strings.Split(string(decoded), ":")
 		if len(parts) != 2 {
-			log.Printf("Unknown format for credentials %q", decoded)
+			log.Printf("Unknown format for credentials %q\n", decoded)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -154,7 +154,7 @@ func (h *HTTP) AuthHandler(fn func(http.ResponseWriter, *http.Request)) http.Han
 			fn(w, r)
 			return
 		}
-		log.Printf("Unauthorized access to %s", url)
+		log.Printf("Unauthorized access to %s\n", url)
 		w.Header().Add("WWW-Authenticate", "basic realm=\"host\"")
 		w.WriteHeader(http.StatusUnauthorized)
 		fmt.Fprintf(w, "Not Authorized.")
