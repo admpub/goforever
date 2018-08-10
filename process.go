@@ -73,7 +73,7 @@ func (p *Process) String() string {
 
 //Find a process by name
 func (p *Process) Find() (*os.Process, string, error) {
-	if p.Pidfile == "" {
+	if len(p.Pidfile) == 0 {
 		return nil, "", errors.New("Pidfile is empty")
 	}
 	if pid := p.Pidfile.Read(); pid > 0 {
@@ -100,25 +100,32 @@ func (p *Process) Start(name string) string {
 	p.Name = name
 	// wd, _ := os.Getwd()
 	wd := p.Dir
-	if p.Dir == "" {
+	if len(p.Dir) == 0 {
 		wd, _ = os.Getwd()
 	}
 	abspath := filepath.Join(wd, p.Command)
 	dirpath := filepath.Dir(abspath)
 	basepath := filepath.Base(abspath)
 	fmt.Println(dirpath)
-	logDir := filepath.Dir(p.Logfile)
-	os.MkdirAll(logDir, os.ModePerm)
-	logDir = filepath.Dir(p.Errfile)
-	os.MkdirAll(logDir, os.ModePerm)
+	files := []*os.File{
+		os.Stdin,
+		os.Stdout,
+		os.Stderr,
+	}
+	if len(p.Logfile) > 0 {
+		logDir := filepath.Dir(p.Logfile)
+		os.MkdirAll(logDir, os.ModePerm)
+		files[1] = NewLog(p.Logfile)
+	}
+	if len(p.Errfile) > 0 {
+		logDir := filepath.Dir(p.Errfile)
+		os.MkdirAll(logDir, os.ModePerm)
+		files[2] = NewLog(p.Errfile)
+	}
 	proc := &os.ProcAttr{
-		Dir: dirpath,
-		Env: append(os.Environ()[:], p.Env...),
-		Files: []*os.File{
-			os.Stdin,
-			NewLog(p.Logfile),
-			NewLog(p.Errfile),
-		},
+		Dir:   dirpath,
+		Env:   append(os.Environ()[:], p.Env...),
+		Files: files,
 	}
 	args := append([]string{basepath}, p.Args...)
 	basepath = "./" + basepath
@@ -178,7 +185,7 @@ func (p *Process) Restart() (chan *Process, string) {
 
 //Run callback on the process after given duration.
 func (p *Process) ping(duration string, f func(t time.Duration, p *Process)) {
-	if p.Ping != "" {
+	if len(p.Ping) > 0 {
 		duration = p.Ping
 	}
 	t, err := time.ParseDuration(duration)
@@ -243,7 +250,7 @@ func (p *Process) watch() {
 			return
 		}
 		fmt.Fprintf(os.Stderr, "%s respawns = %#v\n", p.Name, p.respawns)
-		if p.Delay != "" {
+		if len(p.Delay) > 0 {
 			t, _ := time.ParseDuration(p.Delay)
 			time.Sleep(t)
 		}
@@ -349,7 +356,7 @@ func NewLog(path string) *os.File {
 	}
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660)
 	if err != nil {
-		log.Fatalf("%s", err)
+		log.Fatalf("%s\n", err)
 		return nil
 	}
 	return file
