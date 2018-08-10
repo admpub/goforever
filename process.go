@@ -122,7 +122,7 @@ func (p *Process) Start(name string) string {
 	}
 	args := append([]string{basepath}, p.Args...)
 	basepath = "./" + basepath
-	fmt.Printf("Args: %v %v %v", basepath, args, proc)
+	fmt.Printf("Args: %v %v %v\n", basepath, args, proc)
 	process, err := os.StartProcess(basepath, args, proc)
 	if err != nil {
 		log.Fatalf("%s failed. %s\n", p.Name, err)
