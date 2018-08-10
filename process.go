@@ -10,11 +10,11 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	//"os/exec"
 	"strconv"
+	"syscall"
 	"time"
-	"path/filepath"
-	//"syscall"
+"path/filepath"
+	"github.com/gooops/go-ps"
 )
 
 var ping = "1m"
@@ -23,7 +23,12 @@ var ping = "1m"
 func RunProcess(name string, p *Process) chan *Process {
 	ch := make(chan *Process)
 	go func() {
-		p.start(name)
+		proc, msg, err := p.find()
+		_, _ = msg, err
+		// proc, err := ps.FindProcess(p.Pid)
+		if proc == nil {
+			p.start(name)
+		}
 		p.ping(ping, func(time time.Duration, p *Process) {
 			if p.Pid > 0 {
 				p.respawns = 0
@@ -40,6 +45,8 @@ func RunProcess(name string, p *Process) chan *Process {
 type Process struct {
 	Name     string
 	Command  string
+	Env      []string
+	Dir      string
 	Args     []string
 	Pidfile  Pidfile
 	Logfile  string
@@ -70,6 +77,10 @@ func (p *Process) find() (*os.Process, string, error) {
 		return nil, "", errors.New("Pidfile is empty.")
 	}
 	if pid := p.Pidfile.read(); pid > 0 {
+		proc, err := ps.FindProcess(pid)
+		if err != nil || proc == nil {
+			return nil, "", err
+		}
 		process, err := os.FindProcess(pid)
 		if err != nil {
 			return nil, "", err
@@ -87,14 +98,18 @@ func (p *Process) find() (*os.Process, string, error) {
 //Start the process
 func (p *Process) start(name string) string {
 	p.Name = name
-	wd, _ := os.Getwd()
+	// wd, _ := os.Getwd()
+	wd := p.Dir
+	if p.Dir == "" {
+		wd, _ = os.Getwd()
+	}
 	abspath := filepath.Join(wd, p.Command)
 	dirpath := filepath.Dir(abspath)
 	basepath := filepath.Base(abspath)
 	fmt.Println(dirpath)
 	proc := &os.ProcAttr{
 		Dir: dirpath,
-		Env: os.Environ(),
+		Env: append(os.Environ()[:], p.Env...),
 		Files: []*os.File{
 			os.Stdin,
 			NewLog(p.Logfile),
@@ -130,7 +145,7 @@ func (p *Process) stop() string {
 		} else {
 			fmt.Println("Stop command seemed to work")
 		}
-		p.children.stop("all")
+		// p.children.stop("all")
 	}
 	p.release("stopped")
 	message := fmt.Sprintf("%s stopped.\n", p.Name)
@@ -139,11 +154,13 @@ func (p *Process) stop() string {
 
 //Release process and remove pidfile
 func (p *Process) release(status string) {
+	// debug.PrintStack()
 	if p.x != nil {
 		p.x.Release()
 	}
 	p.Pid = 0
-	p.Pidfile.delete()
+	// 去掉删除pid文件的动作，用于goforever进程重启后继续监控，防止启动重复进程
+	// p.Pidfile.delete()
 	p.Status = status
 }
 
@@ -181,7 +198,25 @@ func (p *Process) watch() {
 	status := make(chan *os.ProcessState)
 	died := make(chan error)
 	go func() {
-		state, err := p.x.Wait()
+		// state, err := p.x.Wait()
+		proc, err := ps.FindProcess(p.Pid)
+		var ppid int
+		var state = &os.ProcessState{}
+		if proc != nil {
+			ppid = proc.PPid()
+		}
+		// 如果是当前进程fork的子进程，则阻塞等待获取子进程状态，否则循环检测进程状态（1s一次，直到状态变更）
+		if ppid == os.Getpid() {
+			state, err = p.x.Wait()
+		} else {
+			for {
+				time.Sleep(1 * time.Second)
+				proc, err = ps.FindProcess(p.Pid)
+				if err != nil || proc == nil {
+					break
+				}
+			}
+		}
 		if err != nil {
 			died <- err
 			return
@@ -193,6 +228,7 @@ func (p *Process) watch() {
 		if p.Status == "stopped" {
 			return
 		}
+
 		fmt.Fprintf(os.Stderr, "%s %s\n", p.Name, s)
 		fmt.Fprintf(os.Stderr, "%s success = %#v\n", p.Name, s.Success())
 		fmt.Fprintf(os.Stderr, "%s exited = %#v\n", p.Name, s.Exited())
