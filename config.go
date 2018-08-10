@@ -24,7 +24,7 @@ type Config struct {
 	Processes   []*Process `toml:"process"`
 }
 
-func (c Config) Keys() []string {
+func (c *Config) Keys() []string {
 	keys := []string{}
 	for _, p := range c.Processes {
 		keys = append(keys, p.Name)
@@ -32,13 +32,18 @@ func (c Config) Keys() []string {
 	return keys
 }
 
-func (c Config) Get(key string) *Process {
+func (c *Config) Get(key string) *Process {
 	for _, p := range c.Processes {
 		if p.Name == key {
 			return p
 		}
 	}
 	return nil
+}
+
+func (c *Config) Add(processes ...*Process) *Config {
+	c.Processes = append(c.Processes, processes...)
+	return c
 }
 
 func LoadConfig(file string) (*Config, error) {
