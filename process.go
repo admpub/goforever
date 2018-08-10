@@ -107,6 +107,10 @@ func (p *Process) Start(name string) string {
 	dirpath := filepath.Dir(abspath)
 	basepath := filepath.Base(abspath)
 	fmt.Println(dirpath)
+	logDir := filepath.Dir(p.Logfile)
+	os.MkdirAll(logDir, os.ModePerm)
+	logDir = filepath.Dir(p.Errfile)
+	os.MkdirAll(logDir, os.ModePerm)
 	proc := &os.ProcAttr{
 		Dir: dirpath,
 		Env: append(os.Environ()[:], p.Env...),

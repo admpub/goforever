@@ -18,9 +18,9 @@ ping = "30s"
 
 [[process]]
 name = "example"
-dir = "/tmp/"
+dir = "../../"
 env = ["aaa=aaa","bbb=bbb"]
-command = "./example/example"
+command = "./example/example.exe"
 args = ["-name=foo"]
 pidfile = "example/example.pid"
 logfile = "example/logs/example.debug.log"
