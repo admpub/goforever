@@ -1,7 +1,4 @@
-// goforever - processes management
-// Copyright (c) 2013 Garrett Woodworth (https://github.com/gwoo).
-
-package main
+package http
 
 import (
 	"encoding/base64"
@@ -9,17 +6,30 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"strings"
+
+	"github.com/admpub/goforever"
 )
 
-func HttpServer() {
+func New(config *goforever.Config, daemon *goforever.Process) *HTTP {
+	return &HTTP{
+		config: config,
+		daemon: daemon,
+	}
+}
+
+type HTTP struct {
+	config *goforever.Config
+	daemon *goforever.Process
+}
+
+func (h *HTTP) HttpServer() {
 	http.HandleFunc("/favicon.ico", http.NotFound)
-	http.HandleFunc("/", AuthHandler(Handler))
-	fmt.Printf("goforever serving port %s\n", config.Port)
-	fmt.Printf("goforever serving IP %s\n", config.IP)
-	bindAddress := fmt.Sprintf("%s:%s", config.IP, config.Port)
-	if isHttps() == false {
+	http.HandleFunc("/", h.AuthHandler(h.Handler))
+	fmt.Printf("goforever serving port %s\n", h.config.Port)
+	fmt.Printf("goforever serving IP %s\n", h.config.IP)
+	bindAddress := fmt.Sprintf("%s:%s", h.config.IP, h.config.Port)
+	if h.isHttps() == false {
 		if err := http.ListenAndServe(bindAddress, nil); err != nil {
 			log.Fatal("ListenAndServe: ", err)
 		}
@@ -31,41 +41,35 @@ func HttpServer() {
 	}
 }
 
-func isHttps() bool {
-	_, cerr := os.Open("cert.pem")
-	_, kerr := os.Open("key.pem")
-
-	if os.IsNotExist(cerr) || os.IsNotExist(kerr) {
-		return false
-	}
-	return true
+func (h *HTTP) isHttps() bool {
+	return len(h.config.TLSCertfile) > 0 && len(h.config.TLSKeyfile) > 0
 }
 
-func Handler(w http.ResponseWriter, r *http.Request) {
+func (h *HTTP) Handler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "DELETE":
-		DeleteHandler(w, r)
+		h.DeleteHandler(w, r)
 		return
 	case "POST":
-		PostHandler(w, r)
+		h.PostHandler(w, r)
 		return
 	case "PUT":
-		PutHandler(w, r)
+		h.PutHandler(w, r)
 		return
 	case "GET":
-		GetHandler(w, r)
+		h.GetHandler(w, r)
 		return
 	}
 }
 
-func GetHandler(w http.ResponseWriter, r *http.Request) {
+func (h *HTTP) GetHandler(w http.ResponseWriter, r *http.Request) {
 	var output []byte
 	var err error
 	switch r.URL.Path[1:] {
 	case "":
-		output, err = json.Marshal(daemon.children.keys())
+		output, err = json.Marshal(h.daemon.Children.Keys())
 	default:
-		output, err = json.Marshal(daemon.children.get(r.URL.Path[1:]))
+		output, err = json.Marshal(h.daemon.Children.Get(r.URL.Path[1:]))
 	}
 	if err != nil {
 		log.Printf("Get Error: %#v", err)
@@ -74,47 +78,47 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s", output)
 }
 
-func PostHandler(w http.ResponseWriter, r *http.Request) {
+func (h *HTTP) PostHandler(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Path[1:]
-	p := daemon.children.get(name)
+	p := h.daemon.Children.Get(name)
 	if p == nil {
 		fmt.Fprintf(w, "%s does not exist.", name)
 		return
 	}
-	cp, _, _ := p.find()
+	cp, _, _ := p.Find()
 	if cp != nil {
 		fmt.Fprintf(w, "%s already running.", name)
 		return
 	}
-	ch := RunProcess(name, p)
+	ch := goforever.RunProcess(name, p)
 	fmt.Fprintf(w, "%s", <-ch)
 }
 
-func PutHandler(w http.ResponseWriter, r *http.Request) {
+func (h *HTTP) PutHandler(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Path[1:]
-	p := daemon.children.get(name)
+	p := h.daemon.Children.Get(name)
 	if p == nil {
 		fmt.Fprintf(w, "%s does not exist.", name)
 		return
 	}
-	p.find()
-	ch, _ := p.restart()
+	p.Find()
+	ch, _ := p.Restart()
 	fmt.Fprintf(w, "%s", <-ch)
 }
 
-func DeleteHandler(w http.ResponseWriter, r *http.Request) {
+func (h *HTTP) DeleteHandler(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Path[1:]
-	p := daemon.children.get(name)
+	p := h.daemon.Children.Get(name)
 	if p == nil {
 		fmt.Fprintf(w, "%s does not exist.", name)
 		return
 	}
-	p.find()
-	p.stop()
+	p.Find()
+	p.Stop()
 	fmt.Fprintf(w, "%s stopped.", name)
 }
 
-func AuthHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
+func (h *HTTP) AuthHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		url := r.URL
 		for k, v := range r.Header {
@@ -146,7 +150,7 @@ func AuthHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		if parts[0] == config.Username && parts[1] == config.Password {
+		if parts[0] == h.config.Username && parts[1] == h.config.Password {
 			fn(w, r)
 			return
 		}

@@ -1,7 +1,7 @@
 // goforever - processes management
 // Copyright (c) 2013 Garrett Woodworth (https://github.com/gwoo).
 
-package main
+package goforever
 
 import (
 	"os"
@@ -11,15 +11,17 @@ import (
 )
 
 type Config struct {
-	IP        string
-	Port      string
-	Username  string
-	Password  string
-	Daemonize bool
-	Pidfile   Pidfile
-	Logfile   string
-	Errfile   string
-	Processes []*Process `toml:"process"`
+	IP          string
+	Port        string
+	Username    string
+	Password    string
+	Daemonize   bool
+	Pidfile     Pidfile
+	Logfile     string
+	Errfile     string
+	TLSCertfile string
+	TLSKeyfile  string
+	Processes   []*Process `toml:"process"`
 }
 
 func (c Config) Keys() []string {

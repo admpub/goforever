@@ -1,7 +1,4 @@
-// goforever - processes management
-// Copyright (c) 2013 Garrett Woodworth (https://github.com/gwoo).
-
-package main
+package http
 
 import (
 	"fmt"
@@ -10,12 +7,29 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/admpub/goforever"
 	"github.com/gwoo/greq"
 )
 
+var config = &goforever.Config{
+	IP:       `0.0.0.0`,
+	Port:     `2224`,
+	Username: `admin`,
+	Password: `admin`,
+}
+var daemon = &goforever.Process{
+	Name:    "goforever",
+	Args:    []string{},
+	Command: "goforever",
+	Pidfile: config.Pidfile,
+	Logfile: config.Logfile,
+	Errfile: config.Errfile,
+	Respawn: 1,
+}
+
 func TestListHandler(t *testing.T) {
-	daemon.children = children{
-		"test": &Process{Name: "test"},
+	daemon.Children = goforever.Children{
+		"test": &goforever.Process{Name: "test"},
 	}
 	body, _ := newTestResponse("GET", "/", nil)
 	ex := fmt.Sprintf("%s", string([]byte(`["test"]`)))
@@ -26,8 +40,8 @@ func TestListHandler(t *testing.T) {
 }
 
 func TestShowHandler(t *testing.T) {
-	daemon.children = children{
-		"test": &Process{Name: "test"},
+	daemon.Children = goforever.Children{
+		"test": &goforever.Process{Name: "test"},
 	}
 	body, _ := newTestResponse("GET", "/test", nil)
 	e := []byte(`{"Name":"test","Command":"","Args":null,"Pidfile":"","Logfile":"","Errfile":"","Path":"","Respawn":0,"Delay":"","Ping":"","Pid":0,"Status":""}`)
@@ -39,8 +53,8 @@ func TestShowHandler(t *testing.T) {
 }
 
 func TestPostHandler(t *testing.T) {
-	daemon.children = children{
-		"test": &Process{Name: "test", Command: "/bin/echo", Args: []string{"woohoo"}},
+	daemon.Children = goforever.Children{
+		"test": &goforever.Process{Name: "test", Command: "/bin/echo", Args: []string{"woohoo"}},
 	}
 	body, _ := newTestResponse("POST", "/test", nil)
 	e := []byte(`{"Name":"test","Command":"/bin/echo","Args":["woohoo"],"Pidfile":"","Logfile":"","Errfile":"","Path":"","Respawn":0,"Delay":"","Ping":"","Pid":0,"Status":"stopped"}`)
@@ -52,7 +66,7 @@ func TestPostHandler(t *testing.T) {
 }
 
 func newTestResponse(method string, path string, body io.Reader) ([]byte, *http.Response) {
-	ts := httptest.NewServer(http.HandlerFunc(Handler))
+	ts := httptest.NewServer(http.HandlerFunc(New(config, daemon).Handler))
 	defer ts.Close()
 	url := ts.URL + path
 	b, r, _ := greq.Do(method, url, nil, body)

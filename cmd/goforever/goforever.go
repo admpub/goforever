@@ -9,12 +9,14 @@ import (
 	"log"
 	"os"
 
+	"github.com/admpub/goforever"
+	httpF "github.com/admpub/goforever/http"
 	"github.com/gwoo/greq"
 )
 
 var conf = flag.String("conf", "goforever.toml", "Path to config file.")
-var config *Config
-var daemon *Process
+var config *goforever.Config
+var daemon *goforever.Process
 
 var Usage = func() {
 	fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
@@ -34,7 +36,7 @@ func init() {
 	flag.Usage = Usage
 	flag.Parse()
 	setConfig()
-	daemon = &Process{
+	daemon = &goforever.Process{
 		Name:    "goforever",
 		Args:    []string{},
 		Command: "goforever",
@@ -50,9 +52,10 @@ func main() {
 		fmt.Printf("%s", Cli())
 		return
 	}
+	httpS := httpF.New(config, daemon)
 	if len(flag.Args()) == 0 {
 		RunDaemon()
-		HttpServer()
+		httpS.HttpServer()
 		return
 	}
 }
@@ -69,9 +72,9 @@ func Cli() string {
 	if name == "" {
 		if sub == "start" {
 			daemon.Args = append(daemon.Args, os.Args[2:]...)
-			return daemon.start(daemon.Name)
+			return daemon.Start(daemon.Name)
 		}
-		_, _, err = daemon.find()
+		_, _, err = daemon.Find()
 		if err != nil {
 			return fmt.Sprintf("Error: %s.\n", err)
 		}
@@ -79,11 +82,11 @@ func Cli() string {
 			return fmt.Sprintf("%s.\n", daemon.String())
 		}
 		if sub == "stop" {
-			message := daemon.stop()
+			message := daemon.Stop()
 			return message
 		}
 		if sub == "restart" {
-			ch, message := daemon.restart()
+			ch, message := daemon.Restart()
 			fmt.Print(message)
 			return fmt.Sprintf("%s\n", <-ch)
 		}
@@ -108,16 +111,16 @@ func Cli() string {
 }
 
 func RunDaemon() {
-	daemon.children = make(map[string]*Process, 0)
+	daemon.Children = make(map[string]*goforever.Process, 0)
 	for _, name := range config.Keys() {
-		daemon.children[name] = config.Get(name)
+		daemon.Children[name] = config.Get(name)
 	}
-	daemon.run()
+	daemon.Run()
 }
 
 func setConfig() {
 	var err error
-	config, err = LoadConfig(*conf)
+	config, err = goforever.LoadConfig(*conf)
 	if err != nil {
 		log.Fatalf("%s", err)
 		return
@@ -140,7 +143,7 @@ func setConfig() {
 
 func host() string {
 	scheme := "https"
-	if isHttps() == false {
+	if len(config.TLSCertfile) == 0 || len(config.TLSKeyfile) == 0 {
 		scheme = "http"
 	}
 	return fmt.Sprintf("%s://%s:%s@0.0.0.0:%s",

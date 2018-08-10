@@ -1,7 +1,7 @@
 // goforever - processes management
 // Copyright (c) 2013 Garrett Woodworth (https://github.com/gwoo).
 
-package main
+package goforever
 
 import (
 	"encoding/json"
@@ -10,24 +10,24 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
-	"syscall"
 	"time"
-"path/filepath"
-	"github.com/gooops/go-ps"
+
+	ps "github.com/admpub/go-ps"
 )
 
 var ping = "1m"
 
-//Run the process
+//RunProcess Run the process
 func RunProcess(name string, p *Process) chan *Process {
 	ch := make(chan *Process)
 	go func() {
-		proc, msg, err := p.find()
+		proc, msg, err := p.Find()
 		_, _ = msg, err
 		// proc, err := ps.FindProcess(p.Pid)
 		if proc == nil {
-			p.start(name)
+			p.Start(name)
 		}
 		p.ping(ping, func(time time.Duration, p *Process) {
 			if p.Pid > 0 {
@@ -59,7 +59,7 @@ type Process struct {
 	Status   string
 	x        *os.Process
 	respawns int
-	children children
+	Children Children
 }
 
 func (p *Process) String() string {
@@ -72,11 +72,11 @@ func (p *Process) String() string {
 }
 
 //Find a process by name
-func (p *Process) find() (*os.Process, string, error) {
+func (p *Process) Find() (*os.Process, string, error) {
 	if p.Pidfile == "" {
-		return nil, "", errors.New("Pidfile is empty.")
+		return nil, "", errors.New("Pidfile is empty")
 	}
-	if pid := p.Pidfile.read(); pid > 0 {
+	if pid := p.Pidfile.Read(); pid > 0 {
 		proc, err := ps.FindProcess(pid)
 		if err != nil || proc == nil {
 			return nil, "", err
@@ -92,11 +92,11 @@ func (p *Process) find() (*os.Process, string, error) {
 		return process, message, nil
 	}
 	message := fmt.Sprintf("%s not running.\n", p.Name)
-	return nil, message, errors.New(fmt.Sprintf("Could not find process %s.", p.Name))
+	return nil, message, fmt.Errorf("Could not find process %s", p.Name)
 }
 
 //Start the process
-func (p *Process) start(name string) string {
+func (p *Process) Start(name string) string {
 	p.Name = name
 	// wd, _ := os.Getwd()
 	wd := p.Dir
@@ -124,7 +124,7 @@ func (p *Process) start(name string) string {
 		log.Fatalf("%s failed. %s\n", p.Name, err)
 		return ""
 	}
-	err = p.Pidfile.write(process.Pid)
+	err = p.Pidfile.Write(process.Pid)
 	if err != nil {
 		log.Printf("%s pidfile error: %s\n", p.Name, err)
 		return ""
@@ -136,16 +136,16 @@ func (p *Process) start(name string) string {
 }
 
 //Stop the process
-func (p *Process) stop() string {
+func (p *Process) Stop() string {
 	if p.x != nil {
 		// Initial code has the following comment: "p.x.Kill() this seems to cause trouble"
 		// I want this to work on windows where AFAIK the existing code was not portable
-		if err := p.x.Kill(); err != nil {
+		if err := p.x.Kill(); err != nil { //err := syscall.Kill(p.x.Pid, syscall.SIGTERM)
 			log.Println(err)
 		} else {
 			fmt.Println("Stop command seemed to work")
 		}
-		// p.children.stop("all")
+		// p.Children.Stop("all")
 	}
 	p.release("stopped")
 	message := fmt.Sprintf("%s stopped.\n", p.Name)
@@ -160,13 +160,13 @@ func (p *Process) release(status string) {
 	}
 	p.Pid = 0
 	// 去掉删除pid文件的动作，用于goforever进程重启后继续监控，防止启动重复进程
-	// p.Pidfile.delete()
+	// p.Pidfile.Delete()
 	p.Status = status
 }
 
 //Restart the process
-func (p *Process) restart() (chan *Process, string) {
-	p.stop()
+func (p *Process) Restart() (chan *Process, string) {
+	p.Stop()
 	message := fmt.Sprintf("%s restarted.\n", p.Name)
 	ch := RunProcess(p.Name, p)
 	return ch, message
@@ -243,7 +243,7 @@ func (p *Process) watch() {
 			t, _ := time.ParseDuration(p.Delay)
 			time.Sleep(t)
 		}
-		p.restart()
+		p.Restart()
 		p.Status = "restarted"
 	case err := <-died:
 		p.release("killed")
@@ -252,17 +252,17 @@ func (p *Process) watch() {
 }
 
 //Run child processes
-func (p *Process) run() {
-	for name, p := range p.children {
+func (p *Process) Run() {
+	for name, p := range p.Children {
 		RunProcess(name, p)
 	}
 }
 
-//Child processes.
-type children map[string]*Process
+//Children Child processes.
+type Children map[string]*Process
 
-//Stringify
-func (c children) String() string {
+//String Stringify
+func (c Children) String() string {
 	js, err := json.Marshal(c)
 	if err != nil {
 		log.Print(err)
@@ -271,40 +271,40 @@ func (c children) String() string {
 	return string(js)
 }
 
-//Get child processes names.
-func (c children) keys() []string {
+//Keys Get child processes names.
+func (c Children) Keys() []string {
 	keys := []string{}
-	for k, _ := range c {
+	for k := range c {
 		keys = append(keys, k)
 	}
 	return keys
 }
 
 //Get child process.
-func (c children) get(key string) *Process {
+func (c Children) Get(key string) *Process {
 	if v, ok := c[key]; ok {
 		return v
 	}
 	return nil
 }
 
-func (c children) stop(name string) {
+func (c Children) Stop(name string) {
 	if name == "all" {
 		for name, p := range c {
-			p.stop()
+			p.Stop()
 			delete(c, name)
 		}
 		return
 	}
-	p := c.get(name)
-	p.stop()
+	p := c.Get(name)
+	p.Stop()
 	delete(c, name)
 }
 
 type Pidfile string
 
 //Read the pidfile.
-func (f *Pidfile) read() int {
+func (f *Pidfile) Read() int {
 	data, err := ioutil.ReadFile(string(*f))
 	if err != nil {
 		return 0
@@ -317,7 +317,7 @@ func (f *Pidfile) read() int {
 }
 
 //Write the pidfile.
-func (f *Pidfile) write(data int) error {
+func (f *Pidfile) Write(data int) error {
 	err := ioutil.WriteFile(string(*f), []byte(strconv.Itoa(data)), 0660)
 	if err != nil {
 		return err
@@ -326,7 +326,7 @@ func (f *Pidfile) write(data int) error {
 }
 
 //Delete the pidfile
-func (f *Pidfile) delete() bool {
+func (f *Pidfile) Delete() bool {
 	_, err := os.Stat(string(*f))
 	if err != nil {
 		return true
@@ -338,7 +338,7 @@ func (f *Pidfile) delete() bool {
 	return false
 }
 
-//Create a new file for logging
+//NewLog Create a new file for logging
 func NewLog(path string) *os.File {
 	if path == "" {
 		return nil

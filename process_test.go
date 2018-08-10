@@ -1,7 +1,7 @@
 // goforever - processes management
 // Copyright (c) 2013 Garrett Woodworth (https://github.com/gwoo).
 
-package main
+package goforever
 
 import (
 	"testing"
@@ -14,18 +14,18 @@ func TestPidfile(t *testing.T) {
 	}},
 	}
 	p := c.Get("test")
-	err := p.Pidfile.write(100)
+	err := p.Pidfile.Write(100)
 	if err != nil {
 		t.Errorf("Error: %s.", err)
 		return
 	}
 	ex := 100
-	r := p.Pidfile.read()
+	r := p.Pidfile.Read()
 	if ex != r {
 		t.Errorf("Expected %#v. Result %#v\n", ex, r)
 	}
 
-	s := p.Pidfile.delete()
+	s := p.Pidfile.Delete()
 	if s != true {
 		t.Error("Failed to remove pidfile.")
 		return
@@ -44,11 +44,11 @@ func TestProcessStart(t *testing.T) {
 	}},
 	}
 	p := c.Get("bash")
-	p.start("bash")
+	p.Start("bash")
 	ex := 0
 	r := p.x.Pid
 	if ex >= r {
 		t.Errorf("Expected %#v < %#v\n", ex, r)
 	}
-	p.stop()
+	p.Stop()
 }
