@@ -149,7 +149,7 @@ func (p *Process) Stop() string {
 		} else {
 			fmt.Println("Stop command seemed to work")
 		}
-		// p.Children.Stop("all")
+		p.Children.Stop("all")
 	}
 	p.release("stopped")
 	message := fmt.Sprintf("%s stopped.\n", p.Name)
@@ -164,7 +164,7 @@ func (p *Process) release(status string) {
 	}
 	p.Pid = 0
 	// 去掉删除pid文件的动作，用于goforever进程重启后继续监控，防止启动重复进程
-	// p.Pidfile.Delete()
+	//p.Pidfile.Delete()
 	p.Status = status
 }
 

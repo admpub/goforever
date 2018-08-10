@@ -6,6 +6,7 @@ package goforever
 import (
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 )
@@ -47,15 +48,15 @@ func (c *Config) Add(processes ...*Process) *Config {
 }
 
 func LoadConfig(file string) (*Config, error) {
-	if string(file[0]) != "/" {
+	if !strings.HasPrefix(file, "/") {
 		wd, err := os.Getwd()
 		if err != nil {
 			return nil, err
 		}
 		file = filepath.Join(wd, file)
 	}
-	var c *Config
-	if _, err := toml.DecodeFile(file, &c); err != nil {
+	c := &Config{}
+	if _, err := toml.DecodeFile(file, c); err != nil {
 		return nil, err
 	}
 	return c, nil
