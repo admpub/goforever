@@ -8,7 +8,7 @@ import (
 )
 
 func TestNewConfig(t *testing.T) {
-	r, err := LoadConfig("goforever.toml")
+	r, err := LoadConfig("cmd/goforever/goforever.toml")
 
 	if err != nil {
 		t.Errorf("Error creating config %s.", err)
@@ -20,7 +20,7 @@ func TestNewConfig(t *testing.T) {
 }
 
 func TestConfigGet(t *testing.T) {
-	c, _ := LoadConfig("goforever.toml")
+	c, _ := LoadConfig("cmd/goforever/goforever.toml")
 	ex := "example/example.pid"
 	r := string(c.Get("example").Pidfile)
 	if ex != r {
@@ -29,8 +29,8 @@ func TestConfigGet(t *testing.T) {
 }
 
 func TestConfigKeys(t *testing.T) {
-	c, _ := LoadConfig("goforever.toml")
-	ex := []string{"example", "example-panic"}
+	c, _ := LoadConfig("cmd/goforever/goforever.toml")
+	ex := []string{"example" /*, "example-panic"*/}
 	r := c.Keys()
 	if len(ex) != len(r) {
 		t.Errorf("Expected %#v. Result %#v\n", ex, r)
