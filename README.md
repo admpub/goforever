@@ -1,4 +1,6 @@
-# Goforever [![Build Status](https://travis-ci.org/gwoo/goforever.png)](https://travis-ci.org/gwoo/goforever)
+# Mori's Goforever Fork
+
+See the original at [https://github.com/gwoo/goforever]()
 
 Config based process manager. Goforever could be used in place of supervisor, runit, node-forever, etc.
 Goforever will start an http server on the specified port.

@@ -10,9 +10,11 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"os/exec"
+	//"os/exec"
 	"strconv"
 	"time"
+	"path/filepath"
+	//"syscall"
 )
 
 var ping = "1m"
@@ -86,8 +88,12 @@ func (p *Process) find() (*os.Process, string, error) {
 func (p *Process) start(name string) string {
 	p.Name = name
 	wd, _ := os.Getwd()
+	abspath := filepath.Join(wd, p.Command)
+	dirpath := filepath.Dir(abspath)
+	basepath := filepath.Base(abspath)
+	fmt.Println(dirpath)
 	proc := &os.ProcAttr{
-		Dir: wd,
+		Dir: dirpath,
 		Env: os.Environ(),
 		Files: []*os.File{
 			os.Stdin,
@@ -95,8 +101,10 @@ func (p *Process) start(name string) string {
 			NewLog(p.Errfile),
 		},
 	}
-	args := append([]string{p.Name}, p.Args...)
-	process, err := os.StartProcess(p.Command, args, proc)
+	args := append([]string{basepath}, p.Args...)
+	basepath = "./" + basepath
+	fmt.Printf("Args: %v %v %v", basepath, args, proc)
+	process, err := os.StartProcess(basepath, args, proc)
 	if err != nil {
 		log.Fatalf("%s failed. %s\n", p.Name, err)
 		return ""
@@ -115,11 +123,12 @@ func (p *Process) start(name string) string {
 //Stop the process
 func (p *Process) stop() string {
 	if p.x != nil {
-		// p.x.Kill() this seems to cause trouble
-		cmd := exec.Command("kill", fmt.Sprintf("%d", p.x.Pid))
-		_, err := cmd.CombinedOutput()
-		if err != nil {
+		// Initial code has the following comment: "p.x.Kill() this seems to cause trouble"
+		// I want this to work on windows where AFAIK the existing code was not portable
+		if err := p.x.Kill(); err != nil {
 			log.Println(err)
+		} else {
+			fmt.Println("Stop command seemed to work")
 		}
 		p.children.stop("all")
 	}
