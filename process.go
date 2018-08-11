@@ -154,7 +154,7 @@ func (p *Process) Stop() string {
 		} else {
 			fmt.Println("Stop command seemed to work")
 		}
-		p.Children.Stop("all")
+		p.Children.Stop()
 	}
 	p.release("stopped")
 	message := fmt.Sprintf("%s stopped.\n", p.Name)

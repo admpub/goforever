@@ -35,14 +35,15 @@ func (c Children) Get(key string) *Process {
 	return nil
 }
 
-func (c Children) Stop(name string) {
-	if name == "all" {
+func (c Children) Stop(names ...string) {
+	if len(names) < 1 {
 		for name, p := range c {
 			p.Stop()
 			delete(c, name)
 		}
 		return
 	}
+	name := names[0]
 	p := c.Get(name)
 	p.Stop()
 	delete(c, name)
