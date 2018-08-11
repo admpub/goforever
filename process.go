@@ -55,6 +55,7 @@ type Process struct {
 	Ping     string
 	Pid      int
 	Status   string
+	Debug    bool
 	x        *os.Process
 	respawns int
 	Children Children
@@ -104,7 +105,10 @@ func (p *Process) Start(name string) string {
 	abspath := filepath.Join(wd, p.Command)
 	dirpath := filepath.Dir(abspath)
 	basepath := filepath.Base(abspath)
-	fmt.Println(dirpath)
+	logPrefix := `[Process:` + name + `]`
+	if p.Debug {
+		log.Println(logPrefix+`Dir:`, dirpath)
+	}
 	files := []*os.File{
 		os.Stdin,
 		os.Stdout,
@@ -127,7 +131,9 @@ func (p *Process) Start(name string) string {
 	}
 	args := append([]string{basepath}, p.Args...)
 	basepath = "./" + basepath
-	fmt.Printf("Args: %v %v %v\n", basepath, args, proc)
+	if p.Debug {
+		log.Printf(logPrefix+"Args: %v\n", args)
+	}
 	process, err := os.StartProcess(basepath, args, proc)
 	if err != nil {
 		log.Fatalf("%s failed. %s\n", p.Name, err)

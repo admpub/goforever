@@ -24,6 +24,7 @@ func NewProcess(name string, command string, args ...string) *Process {
 	}
 	p.Command = filepath.Base(command)
 	p.Dir = filepath.Dir(command)
+	//log.Println(`WorkDir:`, p.Dir, `Command:`, command)
 	return p
 }
 
