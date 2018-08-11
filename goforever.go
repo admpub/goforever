@@ -17,6 +17,7 @@ func NewProcess(name string, command string, args ...string) *Process {
 		Args:     args,
 		Respawn:  1,
 		Children: make(map[string]*Process, 0),
+		Pidfile:  Pidfile(name + `.pid`),
 	}
 	if len(command) == 0 {
 		command = os.Args[0]
