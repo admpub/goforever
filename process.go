@@ -306,6 +306,11 @@ func (p *Process) Child(name string) *Process {
 	return p.Children.Get(name)
 }
 
+func (p *Process) Add(name string, procs *Process) *Process {
+	p.Children[name] = procs
+	return p
+}
+
 func (p *Process) ChildKeys() []string {
 	return p.Children.Keys()
 }

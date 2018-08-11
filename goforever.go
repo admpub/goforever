@@ -36,3 +36,11 @@ func Child(name string) *Process {
 func ChildKeys() []string {
 	return Default.Children.Keys()
 }
+
+func Add(name string, procs *Process) *Process {
+	return Default.Add(name, procs)
+}
+
+func Run() {
+	Default.Run()
+}
