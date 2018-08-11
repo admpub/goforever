@@ -9,9 +9,10 @@ import (
 	"strings"
 
 	"github.com/admpub/goforever"
+	cfg "github.com/admpub/goforever/config"
 )
 
-func New(config *goforever.Config, daemon *goforever.Process) *HTTP {
+func New(config *cfg.Config, daemon *goforever.Process) *HTTP {
 	return &HTTP{
 		config: config,
 		daemon: daemon,
@@ -19,7 +20,7 @@ func New(config *goforever.Config, daemon *goforever.Process) *HTTP {
 }
 
 type HTTP struct {
-	config *goforever.Config
+	config *cfg.Config
 	daemon *goforever.Process
 }
 

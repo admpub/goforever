@@ -11,12 +11,13 @@ import (
 	"path/filepath"
 
 	"github.com/admpub/goforever"
+	cfg "github.com/admpub/goforever/config"
 	httpF "github.com/admpub/goforever/http"
 	"github.com/gwoo/greq"
 )
 
 var conf = flag.String("conf", "goforever.toml", "Path to config file.")
-var config *goforever.Config
+var config *cfg.Config
 var daemon *goforever.Process
 
 var Usage = func() {
@@ -121,7 +122,7 @@ func RunDaemon() {
 
 func setConfig() {
 	var err error
-	config, err = goforever.LoadConfig(*conf)
+	config, err = cfg.Load(*conf)
 	if err != nil {
 		log.Fatalf("%s", err)
 		return

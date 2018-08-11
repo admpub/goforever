@@ -1,14 +1,11 @@
-// goforever - processes management
-// Copyright (c) 2013 Garrett Woodworth (https://github.com/gwoo).
-
-package goforever
+package config
 
 import (
 	"testing"
 )
 
 func TestNewConfig(t *testing.T) {
-	r, err := LoadConfig("cmd/goforever/goforever.toml")
+	r, err := Load("../cmd/goforever/goforever.toml")
 
 	if err != nil {
 		t.Errorf("Error creating config %s.", err)
@@ -20,7 +17,7 @@ func TestNewConfig(t *testing.T) {
 }
 
 func TestConfigGet(t *testing.T) {
-	c, _ := LoadConfig("cmd/goforever/goforever.toml")
+	c, _ := Load("../cmd/goforever/goforever.toml")
 	ex := "example/example.pid"
 	r := string(c.Get("example").Pidfile)
 	if ex != r {
@@ -29,7 +26,7 @@ func TestConfigGet(t *testing.T) {
 }
 
 func TestConfigKeys(t *testing.T) {
-	c, _ := LoadConfig("cmd/goforever/goforever.toml")
+	c, _ := Load("../cmd/goforever/goforever.toml")
 	ex := []string{"example" /*, "example-panic"*/}
 	r := c.Keys()
 	if len(ex) != len(r) {

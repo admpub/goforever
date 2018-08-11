@@ -8,10 +8,11 @@ import (
 	"testing"
 
 	"github.com/admpub/goforever"
+	cfg "github.com/admpub/goforever/config"
 	"github.com/gwoo/greq"
 )
 
-var config = &goforever.Config{
+var config = &cfg.Config{
 	IP:       `0.0.0.0`,
 	Port:     `2224`,
 	Username: `admin`,

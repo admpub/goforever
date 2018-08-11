@@ -1,6 +1,7 @@
 package goforever
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -17,16 +18,45 @@ func New() *Process {
 	}
 }
 
-func NewWithConfig(config *Config) *Process {
-	p := New()
-	p.Pidfile = config.Pidfile
-	p.Logfile = config.Logfile
-	p.Errfile = config.Errfile
-	return p
+func Start(name string) (*Process, error) {
+	p := Get(name)
+	if p == nil {
+		return nil, fmt.Errorf("%s does not exist", name)
+	}
+	cp, _, _ := p.Find()
+	if cp != nil {
+		return nil, fmt.Errorf("%s already running", name)
+	}
+	ch := RunProcess(name, p)
+	procs := <-ch
+	return procs, nil
 }
 
-func NewConfg() *Config {
-	return &Config{
-		Processes: []*Process{},
+func Restart(name string) (*Process, error) {
+	p := Get(name)
+	if p == nil {
+		return nil, fmt.Errorf("%s does not exist", name)
 	}
+	p.Find()
+	ch, _ := p.Restart()
+	procs := <-ch
+	return procs, nil
+}
+
+func Stop(name string) error {
+	p := Get(name)
+	if p == nil {
+		return fmt.Errorf("%s does not exist", name)
+	}
+	p.Find()
+	p.Stop()
+	return nil
+}
+
+func Get(name string) *Process {
+	return Default.Children.Get(name)
+}
+
+func Keys() []string {
+	return Default.Children.Keys()
 }
