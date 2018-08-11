@@ -2,16 +2,22 @@ package goforever
 
 import (
 	"os"
-	"path/filepath"
 )
 
 var Default = New()
 
 func New() *Process {
+	return NewProcess("goforever", "")
+}
+
+func NewProcess(name string, command string, args ...string) *Process {
+	if len(command) == 0 {
+		command = os.Args[0]
+	}
 	return &Process{
-		Name:     "goforever",
-		Args:     []string{},
-		Command:  filepath.Base(os.Args[0]),
+		Name:     name,
+		Args:     args,
+		Command:  command,
 		Respawn:  1,
 		Children: make(map[string]*Process, 0),
 	}
