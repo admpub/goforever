@@ -7,11 +7,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	ps "github.com/admpub/go-ps"
@@ -310,97 +308,4 @@ func (p *Process) Child(name string) *Process {
 
 func (p *Process) ChildKeys() []string {
 	return p.Children.Keys()
-}
-
-//Children Child processes.
-type Children map[string]*Process
-
-//String Stringify
-func (c Children) String() string {
-	js, err := json.Marshal(c)
-	if err != nil {
-		log.Println(err)
-		return ""
-	}
-	return string(js)
-}
-
-//Keys Get child processes names.
-func (c Children) Keys() []string {
-	keys := []string{}
-	for k := range c {
-		keys = append(keys, k)
-	}
-	return keys
-}
-
-//Get child process.
-func (c Children) Get(key string) *Process {
-	if v, ok := c[key]; ok {
-		return v
-	}
-	return nil
-}
-
-func (c Children) Stop(name string) {
-	if name == "all" {
-		for name, p := range c {
-			p.Stop()
-			delete(c, name)
-		}
-		return
-	}
-	p := c.Get(name)
-	p.Stop()
-	delete(c, name)
-}
-
-type Pidfile string
-
-//Read the pidfile.
-func (f *Pidfile) Read() int {
-	data, err := ioutil.ReadFile(string(*f))
-	if err != nil {
-		return 0
-	}
-	pid, err := strconv.ParseInt(string(data), 0, 32)
-	if err != nil {
-		return 0
-	}
-	return int(pid)
-}
-
-//Write the pidfile.
-func (f *Pidfile) Write(data int) error {
-	err := ioutil.WriteFile(string(*f), []byte(strconv.Itoa(data)), 0660)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-//Delete the pidfile
-func (f *Pidfile) Delete() bool {
-	_, err := os.Stat(string(*f))
-	if err != nil {
-		return true
-	}
-	err = os.Remove(string(*f))
-	if err == nil {
-		return true
-	}
-	return false
-}
-
-//NewLog Create a new file for logging
-func NewLog(path string) *os.File {
-	if path == "" {
-		return nil
-	}
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660)
-	if err != nil {
-		log.Fatalf("%s\n", err)
-		return nil
-	}
-	return file
 }
