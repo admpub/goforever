@@ -9,7 +9,7 @@ import (
 
 	"github.com/admpub/goforever"
 	cfg "github.com/admpub/goforever/config"
-	"github.com/gwoo/greq"
+	"github.com/admpub/greq"
 )
 
 var config = &cfg.Config{

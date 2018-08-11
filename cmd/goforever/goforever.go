@@ -13,7 +13,7 @@ import (
 	"github.com/admpub/goforever"
 	cfg "github.com/admpub/goforever/config"
 	httpF "github.com/admpub/goforever/http"
-	"github.com/gwoo/greq"
+	"github.com/admpub/greq"
 )
 
 var conf = flag.String("conf", "goforever.toml", "Path to config file.")
