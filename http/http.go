@@ -68,9 +68,9 @@ func (h *HTTP) GetHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
 	switch r.URL.Path[1:] {
 	case "":
-		output, err = json.Marshal(h.daemon.Children.Keys())
+		output, err = json.Marshal(h.daemon.ChildKeys())
 	default:
-		output, err = json.Marshal(h.daemon.Children.Get(r.URL.Path[1:]))
+		output, err = json.Marshal(h.daemon.Child(r.URL.Path[1:]))
 	}
 	if err != nil {
 		log.Printf("Get Error: %#v\n", err)
@@ -81,41 +81,31 @@ func (h *HTTP) GetHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *HTTP) PostHandler(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Path[1:]
-	p := h.daemon.Children.Get(name)
-	if p == nil {
-		fmt.Fprintf(w, "%s does not exist.", name)
+	ch, err := h.daemon.StartChild(name)
+	if err != nil {
+		fmt.Fprint(w, err)
 		return
 	}
-	cp, _, _ := p.Find()
-	if cp != nil {
-		fmt.Fprintf(w, "%s already running.", name)
-		return
-	}
-	ch := goforever.RunProcess(name, p)
-	fmt.Fprintf(w, "%s", <-ch)
+	fmt.Fprintf(w, "%s", ch)
 }
 
 func (h *HTTP) PutHandler(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Path[1:]
-	p := h.daemon.Children.Get(name)
-	if p == nil {
-		fmt.Fprintf(w, "%s does not exist.", name)
+	ch, err := h.daemon.RestartChild(name)
+	if err != nil {
+		fmt.Fprint(w, err)
 		return
 	}
-	p.Find()
-	ch, _ := p.Restart()
-	fmt.Fprintf(w, "%s", <-ch)
+	fmt.Fprintf(w, "%s", ch)
 }
 
 func (h *HTTP) DeleteHandler(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Path[1:]
-	p := h.daemon.Children.Get(name)
-	if p == nil {
-		fmt.Fprintf(w, "%s does not exist.", name)
+	err := h.daemon.StopChild(name)
+	if err != nil {
+		fmt.Fprint(w, err)
 		return
 	}
-	p.Find()
-	p.Stop()
 	fmt.Fprintf(w, "%s stopped.", name)
 }
 

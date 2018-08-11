@@ -1,7 +1,6 @@
 package goforever
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -18,45 +17,22 @@ func New() *Process {
 	}
 }
 
-func Start(name string) (*Process, error) {
-	p := Get(name)
-	if p == nil {
-		return nil, fmt.Errorf("%s does not exist", name)
-	}
-	cp, _, _ := p.Find()
-	if cp != nil {
-		return nil, fmt.Errorf("%s already running", name)
-	}
-	ch := RunProcess(name, p)
-	procs := <-ch
-	return procs, nil
+func StartChild(name string) (*Process, error) {
+	return Default.StartChild(name)
 }
 
-func Restart(name string) (*Process, error) {
-	p := Get(name)
-	if p == nil {
-		return nil, fmt.Errorf("%s does not exist", name)
-	}
-	p.Find()
-	ch, _ := p.Restart()
-	procs := <-ch
-	return procs, nil
+func RestartChild(name string) (*Process, error) {
+	return Default.RestartChild(name)
 }
 
-func Stop(name string) error {
-	p := Get(name)
-	if p == nil {
-		return fmt.Errorf("%s does not exist", name)
-	}
-	p.Find()
-	p.Stop()
-	return nil
+func StopChild(name string) error {
+	return Default.StopChild(name)
 }
 
-func Get(name string) *Process {
+func Child(name string) *Process {
 	return Default.Children.Get(name)
 }
 
-func Keys() []string {
+func ChildKeys() []string {
 	return Default.Children.Keys()
 }

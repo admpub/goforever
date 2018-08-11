@@ -269,6 +269,49 @@ func (p *Process) Run() {
 	}
 }
 
+func (p *Process) StartChild(name string) (*Process, error) {
+	cp := Child(name)
+	if cp == nil {
+		return nil, fmt.Errorf("%s does not exist", name)
+	}
+	cpp, _, _ := cp.Find()
+	if cpp != nil {
+		return nil, fmt.Errorf("%s already running", name)
+	}
+	ch := RunProcess(name, cp)
+	procs := <-ch
+	return procs, nil
+}
+
+func (p *Process) RestartChild(name string) (*Process, error) {
+	cp := p.Child(name)
+	if p == nil {
+		return nil, fmt.Errorf("%s does not exist", name)
+	}
+	cp.Find()
+	ch, _ := cp.Restart()
+	procs := <-ch
+	return procs, nil
+}
+
+func (p *Process) StopChild(name string) error {
+	cp := p.Child(name)
+	if cp == nil {
+		return fmt.Errorf("%s does not exist", name)
+	}
+	cp.Find()
+	cp.Stop()
+	return nil
+}
+
+func (p *Process) Child(name string) *Process {
+	return p.Children.Get(name)
+}
+
+func (p *Process) ChildKeys() []string {
+	return p.Children.Keys()
+}
+
 //Children Child processes.
 type Children map[string]*Process
 
