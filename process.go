@@ -306,8 +306,11 @@ func (p *Process) Child(name string) *Process {
 	return p.Children.Get(name)
 }
 
-func (p *Process) Add(name string, procs *Process) *Process {
+func (p *Process) Add(name string, procs *Process, run ...bool) *Process {
 	p.Children[name] = procs
+	if len(run) > 0 && run[0] {
+		RunProcess(name, procs)
+	}
 	return p
 }
 

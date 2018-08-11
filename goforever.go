@@ -43,8 +43,8 @@ func ChildKeys() []string {
 	return Default.Children.Keys()
 }
 
-func Add(name string, procs *Process) *Process {
-	return Default.Add(name, procs)
+func Add(name string, procs *Process, run ...bool) *Process {
+	return Default.Add(name, procs, run...)
 }
 
 func Run() {
