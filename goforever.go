@@ -11,10 +11,13 @@ func New() *Process {
 }
 
 func NewProcess(name string, command string, args ...string) *Process {
+	if len(command) == 0 {
+		command = os.Args[0]
+	}
 	p := &Process{
 		Name:     name,
 		Args:     args,
-		Command:  os.Args[0],
+		Command:  command,
 		Respawn:  1,
 		Children: make(map[string]*Process, 0),
 		Pidfile:  Pidfile(name + `.pid`),
