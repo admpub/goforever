@@ -75,7 +75,7 @@ type Process struct {
 func (p *Process) String() string {
 	js, err := json.Marshal(p)
 	if err != nil {
-		log.Println(err)
+		log.Println(p.logPrefix(), err)
 		return ""
 	}
 	return string(js)
@@ -106,7 +106,7 @@ func (p *Process) AddHook(status string, hook func(procs *Process)) *Process {
 //Find a process by name
 func (p *Process) Find() (*os.Process, string, error) {
 	if len(p.Pidfile) == 0 {
-		return nil, "", errors.New("Pidfile is empty")
+		return nil, "", errors.New(p.logPrefix() + "Pidfile is empty")
 	}
 	if pid := p.Pidfile.Read(); pid > 0 {
 		proc, err := ps.FindProcess(pid)
@@ -121,17 +121,17 @@ func (p *Process) Find() (*os.Process, string, error) {
 		p.Pid = process.Pid
 		p.Status = StatusRunning
 		p.RunHook(p.Status)
-		message := fmt.Sprintf("%s is %#v\n", p.Name, process.Pid)
+		message := fmt.Sprintf(p.logPrefix()+"%s is %#v", p.Name, process.Pid)
 		return process, message, nil
 	}
-	message := fmt.Sprintf("%s not running.\n", p.Name)
+	message := fmt.Sprintf(p.logPrefix()+"%s not running.", p.Name)
 	return nil, message, fmt.Errorf("Could not find process %s", p.Name)
 }
 
 //Start the process
 func (p *Process) Start(name string) string {
 	p.Name = name
-	logPrefix := `[Process:` + name + `]`
+	logPrefix := p.logPrefix()
 	if p.Debug {
 		log.Println(logPrefix+`Dir:`, p.Dir)
 	}
@@ -165,35 +165,40 @@ func (p *Process) Start(name string) string {
 	process, err := os.StartProcess(p.Command, args, proc)
 	if err != nil {
 		//log.Fatalln(logPrefix,"failed.", err)
-		log.Println(logPrefix, "failed.", err)
+		log.Println(logPrefix+"failed.", err)
 		return ""
 	}
 	err = p.Pidfile.Write(process.Pid)
 	if err != nil {
-		log.Printf(p.Name, "pidfile error:", err)
+		log.Printf(logPrefix+"pidfile error:", err)
 		return ""
 	}
 	p.x = process
 	p.Pid = process.Pid
 	p.Status = StatusStarted
 	p.RunHook(p.Status)
-	return fmt.Sprintf("%s is %#v\n", p.Name, process.Pid)
+	return fmt.Sprintf(logPrefix+"%s is %#v", p.Name, process.Pid)
+}
+
+func (p *Process) logPrefix() string {
+	return `[Process:` + p.Name + `]`
 }
 
 //Stop the process
 func (p *Process) Stop() string {
+	logPrefix := p.logPrefix()
 	if p.x != nil {
 		// Initial code has the following comment: "p.x.Kill() this seems to cause trouble"
 		// I want this to work on windows where AFAIK the existing code was not portable
 		if err := p.x.Kill(); err != nil { //err := syscall.Kill(p.x.Pid, syscall.SIGTERM)
-			log.Println(err)
+			log.Println(logPrefix + err.Error())
 		} else {
-			fmt.Println("Stop command seemed to work")
+			fmt.Println(logPrefix + "Stop command seemed to work")
 		}
 		p.Children.Stop()
 	}
 	p.release(StatusStopped)
-	message := fmt.Sprintf("%s stopped.\n", p.Name)
+	message := fmt.Sprintf(logPrefix + "stopped.")
 	return message
 }
 
@@ -213,7 +218,7 @@ func (p *Process) release(status string) {
 //Restart the process
 func (p *Process) Restart() (chan *Process, string) {
 	p.Stop()
-	message := fmt.Sprintf("%s restarted.\n", p.Name)
+	message := p.logPrefix() + "restarted."
 	ch := RunProcess(p.Name, p)
 	return ch, message
 }
@@ -282,7 +287,7 @@ func (p *Process) watch() {
 		p.respawns++
 		if p.respawns > p.Respawn {
 			p.release(StatusExited)
-			log.Printf("%s respawn limit reached.\n", p.Name)
+			log.Println(p.logPrefix() + "respawn limit reached.")
 			return
 		}
 		fmt.Fprintf(os.Stderr, "%s respawns = %#v\n", p.Name, p.respawns)
@@ -295,7 +300,7 @@ func (p *Process) watch() {
 		p.RunHook(p.Status)
 	case err := <-died:
 		p.release(StatusKilled)
-		log.Printf("%d %s killed = %#v\n", p.x.Pid, p.Name, err)
+		log.Printf(p.logPrefix()+"%d %s killed = %#v\n", p.x.Pid, p.Name, err)
 	}
 }
 
