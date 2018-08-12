@@ -46,6 +46,7 @@ func init() {
 		Logfile: config.Logfile,
 		Errfile: config.Errfile,
 		Respawn: 1,
+		Debug:   true,
 	}
 }
 
@@ -116,6 +117,7 @@ func RunDaemon() {
 	daemon.Children = make(map[string]*goforever.Process, 0)
 	for _, name := range config.Keys() {
 		daemon.Children[name] = config.Get(name)
+		daemon.Children[name].Debug = true
 	}
 	daemon.Run()
 }
