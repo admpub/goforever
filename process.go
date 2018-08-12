@@ -320,8 +320,7 @@ func (p *Process) StartChild(name string) (*Process, error) {
 	if cpp != nil {
 		return nil, fmt.Errorf("%s already running", name)
 	}
-	ch := RunProcess(name, cp)
-	procs := <-ch
+	procs := <-RunProcess(name, cp)
 	return procs, nil
 }
 
