@@ -45,7 +45,7 @@ func TestShowHandler(t *testing.T) {
 		"test": &goforever.Process{Name: "test"},
 	}
 	body, _ := newTestResponse("GET", "/test", nil)
-	e := []byte(`{"Name":"test","Command":"","Args":null,"Pidfile":"","Logfile":"","Errfile":"","Path":"","Respawn":0,"Delay":"","Ping":"","Pid":0,"Status":""}`)
+	e := []byte(`{"Name":"test","Command":"","Env":null,"Dir":"","Args":null,"Pidfile":"","Logfile":"","Errfile":"","Path":"","Respawn":0,"Delay":"","Ping":"","Pid":0,"Status":"","Debug":false,"Children":null}`)
 	ex := fmt.Sprintf("%s", e)
 	r := fmt.Sprintf("%s", body)
 	if ex != r {

@@ -20,7 +20,7 @@ errfile = "goforever.log"
 name = "example"
 dir = "../../"
 env = ["aaa=aaa","bbb=bbb"]
-command = "./example/example.exe"
+command = "./example/example"
 args = ["-name=foo"]
 pidfile = "example/example.pid"
 logfile = "example/logs/example.debug.log"

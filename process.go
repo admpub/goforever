@@ -131,17 +131,9 @@ func (p *Process) Find() (*os.Process, string, error) {
 //Start the process
 func (p *Process) Start(name string) string {
 	p.Name = name
-	// wd, _ := os.Getwd()
-	wd := p.Dir
-	if len(p.Dir) == 0 {
-		wd, _ = os.Getwd()
-	}
-	abspath := filepath.Join(wd, p.Command)
-	dirpath := filepath.Dir(abspath)
-	basepath := filepath.Base(abspath)
 	logPrefix := `[Process:` + name + `]`
 	if p.Debug {
-		log.Println(logPrefix+`Dir:`, dirpath)
+		log.Println(logPrefix+`Dir:`, p.Dir)
 	}
 	files := []*os.File{
 		os.Stdin,
@@ -159,16 +151,15 @@ func (p *Process) Start(name string) string {
 		files[2] = NewLog(p.Errfile)
 	}
 	proc := &os.ProcAttr{
-		Dir:   dirpath,
+		Dir:   p.Dir,
 		Env:   append(os.Environ()[:], p.Env...),
 		Files: files,
 	}
-	args := append([]string{basepath}, p.Args...)
-	basepath = "./" + basepath
+	args := append([]string{p.Command}, p.Args...)
 	if p.Debug {
 		log.Printf(logPrefix+"Args: %v\n", args)
 	}
-	process, err := os.StartProcess(basepath, args, proc)
+	process, err := os.StartProcess(p.Command, args, proc)
 	if err != nil {
 		log.Fatalf("%s failed. %s\n", p.Name, err)
 		return ""
