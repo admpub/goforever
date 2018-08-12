@@ -30,7 +30,7 @@ func RunProcess(name string, p *Process) chan *Process {
 		p.ping(ping, func(time time.Duration, p *Process) {
 			if p.Pid > 0 {
 				p.respawns = 0
-				fmt.Printf("%s refreshed after %s.\n", p.Name, time)
+				fmt.Println(p.Name, "refreshed after", time)
 				p.Status = StatusRunning
 				p.RunHook(p.Status)
 			}
@@ -164,12 +164,13 @@ func (p *Process) Start(name string) string {
 	}
 	process, err := os.StartProcess(p.Command, args, proc)
 	if err != nil {
-		log.Fatalf("%s failed. %s\n", p.Name, err)
+		//log.Fatalln(logPrefix,"failed.", err)
+		log.Println(logPrefix, "failed.", err)
 		return ""
 	}
 	err = p.Pidfile.Write(process.Pid)
 	if err != nil {
-		log.Printf("%s pidfile error: %s\n", p.Name, err)
+		log.Printf(p.Name, "pidfile error:", err)
 		return ""
 	}
 	p.x = process
