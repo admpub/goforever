@@ -2,7 +2,6 @@ package goforever
 
 import (
 	"os"
-	"path/filepath"
 )
 
 var Default = New()
@@ -15,16 +14,11 @@ func NewProcess(name string, command string, args ...string) *Process {
 	p := &Process{
 		Name:     name,
 		Args:     args,
+		Command:  os.Args[0],
 		Respawn:  1,
 		Children: make(map[string]*Process, 0),
 		Pidfile:  Pidfile(name + `.pid`),
 	}
-	if len(command) == 0 {
-		command = os.Args[0]
-	}
-	p.Command = filepath.Base(command)
-	p.Dir = filepath.Dir(command)
-	//log.Println(`WorkDir:`, p.Dir, `Command:`, command)
 	return p
 }
 
