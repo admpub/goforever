@@ -32,6 +32,7 @@ func RunProcess(name string, p *Process) chan *Process {
 				p.respawns = 0
 				fmt.Printf("%s refreshed after %s.\n", p.Name, time)
 				p.Status = StatusRunning
+				p.RunHook(p.Status)
 			}
 		})
 		go p.watch()
@@ -45,6 +46,8 @@ const (
 	StatusRunning   = `running`
 	StatusStopped   = `stopped`
 	StatusRestarted = `restarted`
+	StatusExited    = `exited`
+	StatusKilled    = `killed`
 )
 
 type Process struct {
@@ -66,6 +69,7 @@ type Process struct {
 	x        *os.Process
 	respawns int
 	Children Children
+	hooks    map[string][]func(procs *Process)
 }
 
 func (p *Process) String() string {
@@ -75,6 +79,28 @@ func (p *Process) String() string {
 		return ""
 	}
 	return string(js)
+}
+
+func (p *Process) RunHook(status string) {
+	if p.hooks == nil {
+		return
+	}
+	if fnList, ok := p.hooks[status]; ok {
+		for _, f := range fnList {
+			f(p)
+		}
+	}
+}
+
+func (p *Process) AddHook(status string, hook func(procs *Process)) *Process {
+	if p.hooks == nil {
+		p.hooks = map[string][]func(procs *Process){}
+	}
+	if _, ok := p.hooks[status]; !ok {
+		p.hooks[status] = []func(procs *Process){}
+	}
+	p.hooks[status] = append(p.hooks[status], hook)
+	return p
 }
 
 //Find a process by name
@@ -94,6 +120,7 @@ func (p *Process) Find() (*os.Process, string, error) {
 		p.x = process
 		p.Pid = process.Pid
 		p.Status = StatusRunning
+		p.RunHook(p.Status)
 		message := fmt.Sprintf("%s is %#v\n", p.Name, process.Pid)
 		return process, message, nil
 	}
@@ -154,6 +181,7 @@ func (p *Process) Start(name string) string {
 	p.x = process
 	p.Pid = process.Pid
 	p.Status = StatusStarted
+	p.RunHook(p.Status)
 	return fmt.Sprintf("%s is %#v\n", p.Name, process.Pid)
 }
 
@@ -184,6 +212,7 @@ func (p *Process) release(status string) {
 	// 去掉删除pid文件的动作，用于goforever进程重启后继续监控，防止启动重复进程
 	//p.Pidfile.Delete()
 	p.Status = status
+	p.RunHook(p.Status)
 }
 
 //Restart the process
@@ -248,6 +277,7 @@ func (p *Process) watch() {
 	select {
 	case s := <-status:
 		if p.Status == StatusStopped {
+			p.RunHook(p.Status)
 			return
 		}
 
@@ -256,7 +286,7 @@ func (p *Process) watch() {
 		fmt.Fprintf(os.Stderr, "%s exited = %#v\n", p.Name, s.Exited())
 		p.respawns++
 		if p.respawns > p.Respawn {
-			p.release("exited")
+			p.release(StatusExited)
 			log.Printf("%s respawn limit reached.\n", p.Name)
 			return
 		}
@@ -267,8 +297,9 @@ func (p *Process) watch() {
 		}
 		p.Restart()
 		p.Status = StatusRestarted
+		p.RunHook(p.Status)
 	case err := <-died:
-		p.release("killed")
+		p.release(StatusKilled)
 		log.Printf("%d %s killed = %#v\n", p.x.Pid, p.Name, err)
 	}
 }
