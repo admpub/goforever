@@ -157,7 +157,10 @@ func (p *Process) Start(name string) string {
 	}
 	args := append([]string{p.Command}, p.Args...)
 	if p.Debug {
-		log.Printf(logPrefix+"Args: %v\n", args)
+		b, _ := json.MarshalIndent(args, ``, `  `)
+		log.Println(logPrefix+"Args:", string(b))
+		b, _ = json.MarshalIndent(proc, ``, `  `)
+		log.Println(logPrefix+"Attr:", string(b))
 	}
 	process, err := os.StartProcess(p.Command, args, proc)
 	if err != nil {
