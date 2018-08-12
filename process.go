@@ -30,7 +30,7 @@ func RunProcess(name string, p *Process) chan *Process {
 		p.ping(ping, func(time time.Duration, p *Process) {
 			if p.Pid > 0 {
 				p.respawns = 0
-				fmt.Println(p.Name, "refreshed after", time)
+				fmt.Println(p.logPrefix()+"refreshed after", time)
 				p.Status = StatusRunning
 				p.RunHook(p.Status)
 			}
