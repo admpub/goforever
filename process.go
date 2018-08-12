@@ -31,7 +31,7 @@ func RunProcess(name string, p *Process) chan *Process {
 			if p.Pid > 0 {
 				p.respawns = 0
 				fmt.Printf("%s refreshed after %s.\n", p.Name, time)
-				p.Status = "running"
+				p.Status = StatusRunning
 			}
 		})
 		go p.watch()
@@ -39,6 +39,13 @@ func RunProcess(name string, p *Process) chan *Process {
 	}()
 	return ch
 }
+
+const (
+	StatusStarted   = `started`
+	StatusRunning   = `running`
+	StatusStopped   = `stopped`
+	StatusRestarted = `restarted`
+)
 
 type Process struct {
 	Name     string
@@ -86,7 +93,7 @@ func (p *Process) Find() (*os.Process, string, error) {
 		}
 		p.x = process
 		p.Pid = process.Pid
-		p.Status = "running"
+		p.Status = StatusRunning
 		message := fmt.Sprintf("%s is %#v\n", p.Name, process.Pid)
 		return process, message, nil
 	}
@@ -146,7 +153,7 @@ func (p *Process) Start(name string) string {
 	}
 	p.x = process
 	p.Pid = process.Pid
-	p.Status = "started"
+	p.Status = StatusStarted
 	return fmt.Sprintf("%s is %#v\n", p.Name, process.Pid)
 }
 
@@ -162,7 +169,7 @@ func (p *Process) Stop() string {
 		}
 		p.Children.Stop()
 	}
-	p.release("stopped")
+	p.release(StatusStopped)
 	message := fmt.Sprintf("%s stopped.\n", p.Name)
 	return message
 }
@@ -207,7 +214,7 @@ func (p *Process) ping(duration string, f func(t time.Duration, p *Process)) {
 //Watch the process
 func (p *Process) watch() {
 	if p.x == nil {
-		p.release("stopped")
+		p.release(StatusStopped)
 		return
 	}
 	status := make(chan *os.ProcessState)
@@ -240,7 +247,7 @@ func (p *Process) watch() {
 	}()
 	select {
 	case s := <-status:
-		if p.Status == "stopped" {
+		if p.Status == StatusStopped {
 			return
 		}
 
@@ -259,7 +266,7 @@ func (p *Process) watch() {
 			time.Sleep(t)
 		}
 		p.Restart()
-		p.Status = "restarted"
+		p.Status = StatusRestarted
 	case err := <-died:
 		p.release("killed")
 		log.Printf("%d %s killed = %#v\n", p.x.Pid, p.Name, err)
