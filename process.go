@@ -18,21 +18,14 @@ import (
 var ping = "1m"
 
 //RunProcess Run the process
-func RunProcess(name string, p *Process) (chan *Process, error) {
+func RunProcess(name string, p *Process) chan *Process {
 	ch := make(chan *Process)
-	var err error
 	go func() {
-		var proc *os.Process
-		proc, _, err = p.Find()
-		if err != nil {
-			return
-		}
+		proc, msg, err := p.Find()
+		_, _ = msg, err
 		// proc, err := ps.FindProcess(p.Pid)
 		if proc == nil {
-			_, err = p.Start(name)
-			if err != nil {
-				return
-			}
+			p.Start(name)
 		}
 		p.ping(ping, func(time time.Duration, p *Process) {
 			if p.Pid > 0 {
@@ -45,7 +38,7 @@ func RunProcess(name string, p *Process) (chan *Process, error) {
 		go p.watch()
 		ch <- p
 	}()
-	return ch, nil
+	return ch
 }
 
 const (
@@ -77,6 +70,11 @@ type Process struct {
 	respawns int
 	Children Children
 	hooks    map[string][]func(procs *Process)
+	err      error
+}
+
+func (p *Process) Error() error {
+	return p.err
 }
 
 func (p *Process) String() string {
@@ -136,8 +134,9 @@ func (p *Process) Find() (*os.Process, string, error) {
 }
 
 //Start the process
-func (p *Process) Start(name string) (string, error) {
+func (p *Process) Start(name string) string {
 	p.Name = name
+	p.err = nil
 	logPrefix := p.logPrefix()
 	if p.Debug {
 		log.Println(logPrefix+`Dir:`, p.Dir)
@@ -171,20 +170,21 @@ func (p *Process) Start(name string) (string, error) {
 	}
 	process, err := os.StartProcess(p.Command, args, proc)
 	if err != nil {
-		//log.Fatalln(logPrefix,"failed.", err)
-		log.Println(logPrefix+"failed.", err)
-		return "", err
+		p.err = errors.New(logPrefix + "failed. " + err.Error())
+		//log.Fatalln(p.err.Error())
+		log.Println(p.err.Error())
+		return ""
 	}
 	err = p.Pidfile.Write(process.Pid)
 	if err != nil {
 		log.Printf(logPrefix+"pidfile error:", err)
-		return "", err
+		return ""
 	}
 	p.x = process
 	p.Pid = process.Pid
 	p.Status = StatusStarted
 	p.RunHook(p.Status)
-	return fmt.Sprintf(logPrefix+"%s is %#v", p.Name, process.Pid), nil
+	return fmt.Sprintf(logPrefix+"%s is %#v", p.Name, process.Pid)
 }
 
 func (p *Process) logPrefix() string {
@@ -193,12 +193,14 @@ func (p *Process) logPrefix() string {
 
 //Stop the process
 func (p *Process) Stop() string {
+	p.err = nil
 	logPrefix := p.logPrefix()
 	if p.x != nil {
 		// Initial code has the following comment: "p.x.Kill() this seems to cause trouble"
 		// I want this to work on windows where AFAIK the existing code was not portable
 		if err := p.x.Kill(); err != nil { //err := syscall.Kill(p.x.Pid, syscall.SIGTERM)
-			log.Println(logPrefix + err.Error())
+			p.err = errors.New(logPrefix + err.Error())
+			log.Println(p.err.Error())
 		} else {
 			fmt.Println(logPrefix + "Stop command seemed to work")
 		}
@@ -226,10 +228,7 @@ func (p *Process) release(status string) {
 func (p *Process) Restart() (chan *Process, string) {
 	p.Stop()
 	message := p.logPrefix() + "restarted."
-	ch, err := RunProcess(p.Name, p)
-	if err != nil {
-		return ch, err.Error()
-	}
+	ch := RunProcess(p.Name, p)
 	return ch, message
 }
 
@@ -333,11 +332,8 @@ func (p *Process) StartChild(name string) (*Process, error) {
 	if cpp != nil {
 		return nil, fmt.Errorf("%s already running", name)
 	}
-	ch, err := RunProcess(name, cp)
-	if err != nil {
-		return nil, err
-	}
-	return <-ch, nil
+	procs := <-RunProcess(name, cp)
+	return procs, nil
 }
 
 func (p *Process) RestartChild(name string) (*Process, error) {
@@ -365,16 +361,12 @@ func (p *Process) Child(name string) *Process {
 	return p.Children.Get(name)
 }
 
-func (p *Process) Add(name string, procs *Process, run ...bool) error {
+func (p *Process) Add(name string, procs *Process, run ...bool) *Process {
 	p.Children[name] = procs
 	if len(run) > 0 && run[0] {
-		ch, err := RunProcess(name, procs)
-		<-ch
-		if err != nil {
-			return err
-		}
+		RunProcess(name, procs)
 	}
-	return nil
+	return p
 }
 
 func (p *Process) ChildKeys() []string {
