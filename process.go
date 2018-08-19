@@ -365,12 +365,16 @@ func (p *Process) Child(name string) *Process {
 	return p.Children.Get(name)
 }
 
-func (p *Process) Add(name string, procs *Process, run ...bool) *Process {
+func (p *Process) Add(name string, procs *Process, run ...bool) error {
 	p.Children[name] = procs
 	if len(run) > 0 && run[0] {
-		RunProcess(name, procs)
+		ch, err := RunProcess(name, procs)
+		<-ch
+		if err != nil {
+			return err
+		}
 	}
-	return p
+	return nil
 }
 
 func (p *Process) ChildKeys() []string {
