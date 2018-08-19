@@ -18,14 +18,21 @@ import (
 var ping = "1m"
 
 //RunProcess Run the process
-func RunProcess(name string, p *Process) chan *Process {
+func RunProcess(name string, p *Process) (chan *Process, error) {
 	ch := make(chan *Process)
+	var err error
 	go func() {
-		proc, msg, err := p.Find()
-		_, _ = msg, err
+		var proc *os.Process
+		proc, _, err = p.Find()
+		if err != nil {
+			return
+		}
 		// proc, err := ps.FindProcess(p.Pid)
 		if proc == nil {
-			p.Start(name)
+			_, err = p.Start(name)
+			if err != nil {
+				return
+			}
 		}
 		p.ping(ping, func(time time.Duration, p *Process) {
 			if p.Pid > 0 {
@@ -38,7 +45,7 @@ func RunProcess(name string, p *Process) chan *Process {
 		go p.watch()
 		ch <- p
 	}()
-	return ch
+	return ch, nil
 }
 
 const (
@@ -129,7 +136,7 @@ func (p *Process) Find() (*os.Process, string, error) {
 }
 
 //Start the process
-func (p *Process) Start(name string) string {
+func (p *Process) Start(name string) (string, error) {
 	p.Name = name
 	logPrefix := p.logPrefix()
 	if p.Debug {
@@ -166,18 +173,18 @@ func (p *Process) Start(name string) string {
 	if err != nil {
 		//log.Fatalln(logPrefix,"failed.", err)
 		log.Println(logPrefix+"failed.", err)
-		return ""
+		return "", err
 	}
 	err = p.Pidfile.Write(process.Pid)
 	if err != nil {
 		log.Printf(logPrefix+"pidfile error:", err)
-		return ""
+		return "", err
 	}
 	p.x = process
 	p.Pid = process.Pid
 	p.Status = StatusStarted
 	p.RunHook(p.Status)
-	return fmt.Sprintf(logPrefix+"%s is %#v", p.Name, process.Pid)
+	return fmt.Sprintf(logPrefix+"%s is %#v", p.Name, process.Pid), nil
 }
 
 func (p *Process) logPrefix() string {
@@ -219,7 +226,10 @@ func (p *Process) release(status string) {
 func (p *Process) Restart() (chan *Process, string) {
 	p.Stop()
 	message := p.logPrefix() + "restarted."
-	ch := RunProcess(p.Name, p)
+	ch, err := RunProcess(p.Name, p)
+	if err != nil {
+		return ch, err.Error()
+	}
 	return ch, message
 }
 
@@ -316,12 +326,18 @@ func (p *Process) StartChild(name string) (*Process, error) {
 	if cp == nil {
 		return nil, fmt.Errorf("%s does not exist", name)
 	}
-	cpp, _, _ := cp.Find()
+	cpp, _, err := cp.Find()
+	if err != nil {
+		return nil, err
+	}
 	if cpp != nil {
 		return nil, fmt.Errorf("%s already running", name)
 	}
-	procs := <-RunProcess(name, cp)
-	return procs, nil
+	ch, err := RunProcess(name, cp)
+	if err != nil {
+		return nil, err
+	}
+	return <-ch, nil
 }
 
 func (p *Process) RestartChild(name string) (*Process, error) {

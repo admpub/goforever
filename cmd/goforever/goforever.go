@@ -75,7 +75,8 @@ func Cli() string {
 	if name == "" {
 		if sub == "start" {
 			daemon.Args = append(daemon.Args, os.Args[2:]...)
-			return daemon.Start(daemon.Name)
+			message, _ := daemon.Start(daemon.Name)
+			return message
 		}
 		_, _, err = daemon.Find()
 		if err != nil {
