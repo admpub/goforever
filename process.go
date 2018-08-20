@@ -9,10 +9,12 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"time"
 
 	ps "github.com/admpub/go-ps"
+	"github.com/webx-top/com"
 )
 
 var ping = "1m"
@@ -161,14 +163,23 @@ func (p *Process) Start(name string) string {
 		Env:   append(os.Environ()[:], p.Env...),
 		Files: files,
 	}
-	args := append([]string{p.Command}, p.Args...)
+	args := com.ParseArgs(p.Command)
+	args = append(args, p.Args...)
+	if filepath.Base(args[0]) == args[0] {
+		if lp, err := exec.LookPath(args[0]); err != nil {
+			p.err = err
+			log.Println(logPrefix+"LookPath:", err.Error())
+		} else {
+			args[0] = lp
+		}
+	}
 	if p.Debug {
 		b, _ := json.MarshalIndent(args, ``, `  `)
 		log.Println(logPrefix+"Args:", string(b))
 		b, _ = json.MarshalIndent(proc, ``, `  `)
 		log.Println(logPrefix+"Attr:", string(b))
 	}
-	process, err := os.StartProcess(p.Command, args, proc)
+	process, err := os.StartProcess(args[0], args, proc)
 	if err != nil {
 		p.err = errors.New(logPrefix + "failed. " + err.Error())
 		//log.Fatalln(p.err.Error())

@@ -26,3 +26,14 @@ pidfile = "example/example.pid"
 logfile = "example/logs/example.debug.log"
 errfile = "example/logs/example.errors.log"
 respawn = 1
+
+[[process]]
+name = "ll"
+dir = "../../"
+env = []
+command = "ls -alh ."
+args = []
+pidfile = "example/example.pid"
+logfile = "example/logs/example.debug.log"
+errfile = "example/logs/example.errors.log"
+respawn = 1
