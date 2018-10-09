@@ -300,17 +300,17 @@ func (p *Process) watch() {
 			p.RunHook(p.Status)
 			return
 		}
-
-		fmt.Fprintf(os.Stderr, "%s %s\n", p.Name, s)
-		fmt.Fprintf(os.Stderr, "%s success = %#v\n", p.Name, s.Success())
-		fmt.Fprintf(os.Stderr, "%s exited = %#v\n", p.Name, s.Exited())
+		logPrefix := p.logPrefix() + ` `
+		fmt.Fprintf(os.Stderr, logPrefix+"%s\n", s)
+		fmt.Fprintf(os.Stderr, logPrefix+"success = %#v\n", s.Success())
+		fmt.Fprintf(os.Stderr, logPrefix+"exited = %#v\n", s.Exited())
 		p.respawns++
 		if p.respawns > p.Respawn {
 			p.release(StatusExited)
-			log.Println(p.logPrefix() + "respawn limit reached.")
+			log.Println(logPrefix + "respawn limit reached.")
 			return
 		}
-		fmt.Fprintf(os.Stderr, "%s respawns = %#v\n", p.Name, p.respawns)
+		fmt.Fprintf(os.Stderr, logPrefix+"respawns = %#v\n", p.respawns)
 		if len(p.Delay) > 0 {
 			t, _ := time.ParseDuration(p.Delay)
 			time.Sleep(t)
