@@ -68,9 +68,9 @@ func (h *HTTP) GetHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
 	switch r.URL.Path[1:] {
 	case "":
-		output, err = json.Marshal(h.daemon.ChildKeys())
+		output, err = json.MarshalIndent(h.daemon.ChildKeys(), ``, ` `)
 	default:
-		output, err = json.Marshal(h.daemon.Child(r.URL.Path[1:]))
+		output, err = json.MarshalIndent(h.daemon.Child(r.URL.Path[1:]), ``, ` `)
 	}
 	if err != nil {
 		log.Printf("Get Error: %#v\n", err)

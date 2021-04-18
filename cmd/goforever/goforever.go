@@ -71,8 +71,7 @@ func Cli() string {
 	req := greq.New(host(), true)
 	if sub == "list" {
 		o, _, err = req.Get("/")
-	}
-	if name == "" {
+	} else if name == "" {
 		if sub == "start" {
 			daemon.Args = append(daemon.Args, os.Args[2:]...)
 			return daemon.Start(daemon.Name)
@@ -93,8 +92,7 @@ func Cli() string {
 			fmt.Print(message)
 			return fmt.Sprintf("%s\n", <-ch)
 		}
-	}
-	if name != "" {
+	} else {
 		path := fmt.Sprintf("/%s", name)
 		switch sub {
 		case "show":
