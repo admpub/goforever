@@ -4,7 +4,6 @@
 package main
 
 import (
-	_ "embed"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -17,9 +16,6 @@ import (
 	httpF "github.com/admpub/goforever/http"
 	"github.com/admpub/greq"
 )
-
-//go:embed goforever.toml
-var exampleConfig []byte
 
 var conf = flag.String("conf", "goforever.toml", "Path to config file.")
 var config *cfg.Config
@@ -36,9 +32,9 @@ Commands
   start [name]      Start main proccess or named process.
   stop [name]       Stop main proccess or named process.
   restart [name]    Restart main proccess or named process.
-  version 			Show version information.
-  example 			Display configuration file example.
-  generate 			Generate sample configuration file.
+  version           Show version information.
+  example           Display configuration file example.
+  generate          Generate sample configuration file.
 `
 	fmt.Fprintln(os.Stderr, usage)
 }
@@ -46,6 +42,29 @@ Commands
 func init() {
 	flag.Usage = Usage
 	flag.Parse()
+}
+
+func main() {
+	if len(flag.Args()) > 0 {
+		sub := flag.Arg(0)
+		switch sub {
+		case "version":
+			fmt.Println(version)
+			return
+		case "example":
+			fmt.Println(exampleConfig)
+			return
+		case "generate":
+			err := ioutil.WriteFile(*conf, []byte(exampleConfig), os.ModePerm)
+			if err != nil {
+				fmt.Println(err.Error())
+			} else {
+				fmt.Println(`The sample configuration file is generated successfully`)
+			}
+			return
+		}
+	}
+
 	setConfig()
 	daemon = &goforever.Process{
 		Name:    "goforever",
@@ -57,9 +76,6 @@ func init() {
 		Respawn: 1,
 		Debug:   true,
 	}
-}
-
-func main() {
 	if len(flag.Args()) > 0 {
 		fmt.Printf("%s", Cli())
 		return
@@ -80,17 +96,6 @@ func Cli() string {
 	req := greq.New(host(), true)
 	if sub == "list" {
 		o, _, err = req.Get("/")
-	} else if sub == "version" {
-		o = []byte(version)
-	} else if sub == "example" {
-		o = exampleConfig
-	} else if sub == "generate" {
-		err = ioutil.WriteFile(*conf, exampleConfig, os.ModePerm)
-		if err != nil {
-			o = []byte(err.Error())
-		} else {
-			o = []byte(`The sample configuration file is generated successfully`)
-		}
 	} else if name == "" {
 		if sub == "start" {
 			daemon.Args = append(daemon.Args, os.Args[2:]...)
@@ -132,7 +137,7 @@ func Cli() string {
 }
 
 func RunDaemon() {
-	daemon.Children = make(map[string]*goforever.Process, 0)
+	daemon.Children = make(map[string]*goforever.Process)
 	for _, name := range config.Keys() {
 		daemon.Children[name] = config.Get(name)
 		daemon.Children[name].Debug = true
