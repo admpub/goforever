@@ -123,7 +123,7 @@ func (h *HTTP) AuthHandler(fn func(http.ResponseWriter, *http.Request)) http.Han
 			fmt.Fprintf(w, "Not Authorized.")
 			return
 		}
-		encoded := strings.Split(auth[0], " ")
+		encoded := strings.SplitN(auth[0], " ", 2)
 		if len(encoded) != 2 || encoded[0] != "Basic" {
 			log.Printf("Strange Authorization %q\n", auth)
 			w.WriteHeader(http.StatusBadRequest)
@@ -135,7 +135,7 @@ func (h *HTTP) AuthHandler(fn func(http.ResponseWriter, *http.Request)) http.Han
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		parts := strings.Split(string(decoded), ":")
+		parts := strings.SplitN(string(decoded), ":", 2)
 		if len(parts) != 2 {
 			log.Printf("Unknown format for credentials %q\n", decoded)
 			w.WriteHeader(http.StatusBadRequest)
