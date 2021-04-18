@@ -4,8 +4,10 @@
 package main
 
 import (
+	_ "embed"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -16,9 +18,13 @@ import (
 	"github.com/admpub/greq"
 )
 
+//go:embed goforever.toml
+var exampleConfig []byte
+
 var conf = flag.String("conf", "goforever.toml", "Path to config file.")
 var config *cfg.Config
 var daemon *goforever.Process
+var version = `v0.0.1`
 
 var Usage = func() {
 	fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
@@ -30,6 +36,9 @@ Commands
   start [name]      Start main proccess or named process.
   stop [name]       Stop main proccess or named process.
   restart [name]    Restart main proccess or named process.
+  version 			Show version information.
+  example 			Display configuration file example.
+  generate 			Generate sample configuration file.
 `
 	fmt.Fprintln(os.Stderr, usage)
 }
@@ -71,6 +80,17 @@ func Cli() string {
 	req := greq.New(host(), true)
 	if sub == "list" {
 		o, _, err = req.Get("/")
+	} else if sub == "version" {
+		o = []byte(version)
+	} else if sub == "example" {
+		o = exampleConfig
+	} else if sub == "generate" {
+		err = ioutil.WriteFile(*conf, exampleConfig, os.ModePerm)
+		if err != nil {
+			o = []byte(err.Error())
+		} else {
+			o = []byte(`The sample configuration file is generated successfully`)
+		}
 	} else if name == "" {
 		if sub == "start" {
 			daemon.Args = append(daemon.Args, os.Args[2:]...)
