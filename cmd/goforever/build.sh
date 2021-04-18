@@ -45,7 +45,7 @@ linux_arm64() {
 darwin_amd64() {
     export GOOS=darwin
     export GOARCH=amd64
-    go build -o ${DISTPATH}forever_${GOOS}_${GOARCH} -tags="embed" -trimpath -ldflags="-s -w" $PKGPATH
+    go build -o ${DISTPATH}forever_${GOOS}_${GOARCH} -trimpath -ldflags="-s -w" $PKGPATH
 }
 
 windows_amd64() {
