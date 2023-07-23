@@ -6,7 +6,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -55,7 +54,7 @@ func main() {
 			fmt.Println(exampleConfig)
 			return
 		case "generate":
-			err := ioutil.WriteFile(*conf, []byte(exampleConfig), os.ModePerm)
+			err := os.WriteFile(*conf, []byte(exampleConfig), os.ModePerm)
 			if err != nil {
 				fmt.Println(err.Error())
 			} else {

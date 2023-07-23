@@ -27,7 +27,7 @@ func TestConfigGet(t *testing.T) {
 
 func TestConfigKeys(t *testing.T) {
 	c, _ := Load("../cmd/goforever/goforever.toml")
-	ex := []string{"example" /*, "example-panic"*/}
+	ex := []string{"example", "example-panic", "ll"}
 	r := c.Keys()
 	if len(ex) != len(r) {
 		t.Errorf("Expected %#v. Result %#v\n", ex, r)

@@ -30,7 +30,7 @@ func (h *HTTP) HttpServer() {
 	fmt.Printf("goforever serving port %s\n", h.config.Port)
 	fmt.Printf("goforever serving IP %s\n", h.config.IP)
 	bindAddress := fmt.Sprintf("%s:%s", h.config.IP, h.config.Port)
-	if h.isHttps() == false {
+	if !h.isHttps() {
 		if err := http.ListenAndServe(bindAddress, nil); err != nil {
 			log.Fatal("ListenAndServe: ", err)
 		}
@@ -68,9 +68,9 @@ func (h *HTTP) GetHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
 	switch r.URL.Path[1:] {
 	case "":
-		output, err = json.MarshalIndent(h.daemon.ChildKeys(), ``, ` `)
+		output, err = json.Marshal(h.daemon.ChildKeys())
 	default:
-		output, err = json.MarshalIndent(h.daemon.Child(r.URL.Path[1:]), ``, ` `)
+		output, err = json.Marshal(h.daemon.Child(r.URL.Path[1:]))
 	}
 	if err != nil {
 		log.Printf("Get Error: %#v\n", err)
@@ -149,6 +149,5 @@ func (h *HTTP) AuthHandler(fn func(http.ResponseWriter, *http.Request)) http.Han
 		w.Header().Add("WWW-Authenticate", "basic realm=\"host\"")
 		w.WriteHeader(http.StatusUnauthorized)
 		fmt.Fprintf(w, "Not Authorized.")
-		return
 	}
 }

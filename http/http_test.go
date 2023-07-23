@@ -1,10 +1,12 @@
 package http
 
 import (
-	"fmt"
+	"bytes"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/admpub/goforever"
@@ -17,6 +19,7 @@ var config = &cfg.Config{
 	Port:     `2224`,
 	Username: `admin`,
 	Password: `admin`,
+	Pidfile:  goforever.Pidfile(filepath.Join(os.TempDir(), `goforeverTest.pid`)),
 }
 var daemon = &goforever.Process{
 	Name:    "goforever",
@@ -33,8 +36,8 @@ func TestListHandler(t *testing.T) {
 		"test": &goforever.Process{Name: "test"},
 	}
 	body, _ := newTestResponse("GET", "/", nil)
-	ex := fmt.Sprintf("%s", string([]byte(`["test"]`)))
-	r := fmt.Sprintf("%s", string(body))
+	ex := string([]byte(`["test"]`))
+	r := string(body)
 	if ex != r {
 		t.Errorf("\nExpected = %v\nResult = %v\n", ex, r)
 	}
@@ -45,24 +48,23 @@ func TestShowHandler(t *testing.T) {
 		"test": &goforever.Process{Name: "test"},
 	}
 	body, _ := newTestResponse("GET", "/test", nil)
-	e := []byte(`{"Name":"test","Command":"","Env":null,"Dir":"","Args":null,"Pidfile":"","Logfile":"","Errfile":"","Path":"","Respawn":0,"Delay":"","Ping":"","Pid":0,"Status":"","Debug":false,"Children":null}`)
-	ex := fmt.Sprintf("%s", e)
-	r := fmt.Sprintf("%s", body)
-	if ex != r {
-		t.Errorf("\nExpected = %v\nResult = %v\n", ex, r)
+	e := []byte(`{"Name":"test","Command":"","Env":null,"Dir":"","Args":null,"User":"","Pidfile":"","Logfile":"","Errfile":"","Path":"","Respawn":0,"Delay":"","Ping":"","Pid":0,"Status":"","Debug":false,"Children":null}`)
+	if !bytes.Equal(e, body) {
+		t.Errorf("\nExpected = %s\nResult = %s\n", e, body)
 	}
 }
 
 func TestPostHandler(t *testing.T) {
+	pidfile := filepath.Join(os.TempDir(), `goforeverTestEcho.pid`)
 	daemon.Children = goforever.Children{
-		"test": &goforever.Process{Name: "test", Command: "/bin/echo", Args: []string{"woohoo"}},
+		"test": &goforever.Process{Name: "test", Command: "/bin/echo", Args: []string{"woohoo"}, Pidfile: goforever.Pidfile(pidfile)},
 	}
 	body, _ := newTestResponse("POST", "/test", nil)
-	e := []byte(`{"Name":"test","Command":"/bin/echo","Args":["woohoo"],"Pidfile":"","Logfile":"","Errfile":"","Path":"","Respawn":0,"Delay":"","Ping":"","Pid":0,"Status":"stopped"}`)
-	ex := fmt.Sprintf("%s", e)
-	r := fmt.Sprintf("%s", body)
-	if ex != r {
-		t.Errorf("\nExpected = %v\nResult = %v\n", ex, r)
+	b, _ := os.ReadFile(pidfile)
+	pid := string(b)
+	e := []byte(`{"Name":"test","Command":"/bin/echo","Env":null,"Dir":"","Args":["woohoo"],"User":"","Pidfile":"` + pidfile + `","Logfile":"","Errfile":"","Path":"","Respawn":0,"Delay":"","Ping":"","Pid":` + pid + `,"Status":"started","Debug":false,"Children":null}`)
+	if !bytes.Equal(e, body) {
+		t.Errorf("\nExpected = %s\nResult = %s\n", e, body)
 	}
 }
 

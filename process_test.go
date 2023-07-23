@@ -4,7 +4,10 @@
 package goforever
 
 import (
+	"os/user"
 	"testing"
+
+	"github.com/webx-top/com"
 )
 
 func TestPidfile(t *testing.T) {
@@ -49,4 +52,13 @@ func TestProcessStart(t *testing.T) {
 		t.Errorf("Expected %#v < %#v\n", ex, r)
 	}
 	p.Stop()
+}
+
+func TestUser(t *testing.T) {
+	u, err := user.Lookup(`hank`)
+	if err != nil {
+		t.Error(err)
+	} else {
+		com.Dump(u)
+	}
 }
