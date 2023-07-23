@@ -4,12 +4,12 @@ package goforever
 
 import (
 	"fmt"
-	"golang.org/sys/windows"
 	"syscall"
+	
+	//"golang.org/x/sys/windows"
 )
 
 func (p *Process) setSysProcAttr(attr *syscall.SysProcAttr) error {
-	windows.LookupSID(``)
 	token, err := getToken(0)
 	if err != nil {
 		return err
