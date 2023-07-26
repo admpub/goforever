@@ -227,7 +227,7 @@ func (p *Process) Start(name string) string {
 }
 
 func (p *Process) logPrefix() string {
-	return `[Process:` + p.Name + `]`
+	return `[Process:` + p.Name + `][` + time.Now().Format(time.RFC3339) + `]`
 }
 
 // Stop the process
