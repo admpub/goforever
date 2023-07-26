@@ -33,7 +33,7 @@ func RunProcess(name string, p *Process) chan *Process {
 		p.ping(ping, func(time time.Duration, p *Process) {
 			if p.Pid > 0 {
 				p.respawns = 0
-				fmt.Println(p.logPrefix()+"refreshed after", time)
+				log.Println(p.logPrefix()+"refreshed after", time)
 				p.Status = StatusRunning
 				p.RunHook(p.Status)
 			}
@@ -241,7 +241,7 @@ func (p *Process) Stop() string {
 			p.err = errors.New(logPrefix + err.Error())
 			log.Println(p.err.Error())
 		} else {
-			fmt.Println(logPrefix + "Stop command seemed to work")
+			log.Println(logPrefix + "Stop command seemed to work")
 		}
 		p.Children.Stop()
 	}

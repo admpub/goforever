@@ -27,8 +27,8 @@ type HTTP struct {
 func (h *HTTP) HttpServer() {
 	http.HandleFunc("/favicon.ico", http.NotFound)
 	http.HandleFunc("/", h.AuthHandler(h.Handler))
-	fmt.Printf("goforever serving port %s\n", h.config.Port)
-	fmt.Printf("goforever serving IP %s\n", h.config.IP)
+	log.Printf("goforever serving port %s\n", h.config.Port)
+	log.Printf("goforever serving IP %s\n", h.config.IP)
 	bindAddress := fmt.Sprintf("%s:%s", h.config.IP, h.config.Port)
 	if !h.isHttps() {
 		if err := http.ListenAndServe(bindAddress, nil); err != nil {
