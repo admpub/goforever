@@ -4,10 +4,13 @@
 package goforever
 
 import (
+	"os"
+	"os/exec"
 	"os/user"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/webx-top/com"
 )
 
@@ -56,6 +59,12 @@ func TestProcessStart(t *testing.T) {
 }
 
 func TestProcessStartByUser(t *testing.T) {
+	cmd := exec.Command(`go`, `build`, `-o`, `./example/example`, `./example`)
+	err := cmd.Run()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	os.Remove("debug.log")
 	p := &Process{
 		Name:    "bash",
 		Command: "./example",
@@ -75,6 +84,11 @@ func TestProcessStartByUser(t *testing.T) {
 		t.Errorf("Expected %#v < %#v\n", ex, r)
 	}
 	time.Sleep(10 * time.Second)
+	b, err := os.ReadFile(p.Logfile)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	assert.Contains(t, string(b), `Starting for user: `+p.User)
 	p.Stop()
 }
 
