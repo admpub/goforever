@@ -4,16 +4,17 @@ package goforever
 
 import (
 	"fmt"
+	"os"
 	"syscall"
-	
 	//"golang.org/x/sys/windows"
 )
 
-func (p *Process) setSysProcAttr(attr *syscall.SysProcAttr) error {
-	token, err := getToken(0)
+func SetSysProcAttr(attr *syscall.SysProcAttr, userName string, hideWindow bool) error {
+	token, err := getToken(os.Getpid())
 	if err != nil {
 		return err
 	}
+	attr.HideWindow = hideWindow
 	attr.Token = token
 	return nil
 }

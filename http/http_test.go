@@ -32,9 +32,9 @@ var daemon = &goforever.Process{
 }
 
 func TestListHandler(t *testing.T) {
-	daemon.Children = goforever.Children{
+	daemon.SetChildren(goforever.Children{
 		"test": &goforever.Process{Name: "test"},
-	}
+	})
 	body, _ := newTestResponse("GET", "/", nil)
 	ex := string([]byte(`["test"]`))
 	r := string(body)
@@ -44,11 +44,11 @@ func TestListHandler(t *testing.T) {
 }
 
 func TestShowHandler(t *testing.T) {
-	daemon.Children = goforever.Children{
+	daemon.SetChildren(goforever.Children{
 		"test": &goforever.Process{Name: "test"},
-	}
+	})
 	body, _ := newTestResponse("GET", "/test", nil)
-	e := []byte(`{"Name":"test","Command":"","Env":null,"Dir":"","Args":null,"User":"","Pidfile":"","Logfile":"","Errfile":"","Path":"","Respawn":0,"Delay":"","Ping":"","Pid":0,"Status":"","Debug":false,"Children":null}`)
+	e := []byte(`{"Name":"test","Command":"","Env":null,"Dir":"","Args":null,"User":"","HideWindow":false,"Pidfile":"","Logfile":"","Errfile":"","Respawn":0,"Delay":"","Ping":"","Debug":false,"Pid":0,"Status":""}`)
 	if !bytes.Equal(e, body) {
 		t.Errorf("\nExpected = %s\nResult = %s\n", e, body)
 	}
@@ -56,13 +56,13 @@ func TestShowHandler(t *testing.T) {
 
 func TestPostHandler(t *testing.T) {
 	pidfile := filepath.Join(os.TempDir(), `goforeverTestEcho.pid`)
-	daemon.Children = goforever.Children{
+	daemon.SetChildren(goforever.Children{
 		"test": &goforever.Process{Name: "test", Command: "/bin/echo", Args: []string{"woohoo"}, Pidfile: goforever.Pidfile(pidfile)},
-	}
+	})
 	body, _ := newTestResponse("POST", "/test", nil)
 	b, _ := os.ReadFile(pidfile)
 	pid := string(b)
-	e := []byte(`{"Name":"test","Command":"/bin/echo","Env":null,"Dir":"","Args":["woohoo"],"User":"","Pidfile":"` + pidfile + `","Logfile":"","Errfile":"","Path":"","Respawn":0,"Delay":"","Ping":"","Pid":` + pid + `,"Status":"started","Debug":false,"Children":null}`)
+	e := []byte(`{"Name":"test","Command":"/bin/echo","Env":null,"Dir":"","Args":["woohoo"],"User":"","HideWindow":false,"Pidfile":"` + pidfile + `","Logfile":"","Errfile":"","Respawn":0,"Delay":"","Ping":"","Debug":false,"Pid":` + pid + `,"Status":"started"}`)
 	if !bytes.Equal(e, body) {
 		t.Errorf("\nExpected = %s\nResult = %s\n", e, body)
 	}

@@ -16,7 +16,7 @@ import (
 	"github.com/admpub/greq"
 )
 
-var conf = flag.String("conf", "goforever.toml", "Path to config file.")
+var conf = "goforever.toml"
 var config *cfg.Config
 var daemon *goforever.Process
 var version = `v0.0.1`
@@ -38,12 +38,11 @@ Commands
 	fmt.Fprintln(os.Stderr, usage)
 }
 
-func init() {
+func main() {
+	flag.StringVar(&conf, "conf", conf, "Path to config file.")
 	flag.Usage = Usage
 	flag.Parse()
-}
 
-func main() {
 	if len(flag.Args()) > 0 {
 		sub := flag.Arg(0)
 		switch sub {
@@ -54,7 +53,7 @@ func main() {
 			fmt.Println(exampleConfig)
 			return
 		case "generate":
-			err := os.WriteFile(*conf, []byte(exampleConfig), os.ModePerm)
+			err := os.WriteFile(conf, []byte(exampleConfig), os.ModePerm)
 			if err != nil {
 				fmt.Println(err.Error())
 			} else {
@@ -65,16 +64,7 @@ func main() {
 	}
 
 	setConfig()
-	daemon = &goforever.Process{
-		Name:    "goforever",
-		Args:    []string{},
-		Command: filepath.Base(os.Args[0]),
-		Pidfile: config.Pidfile,
-		Logfile: config.Logfile,
-		Errfile: config.Errfile,
-		Respawn: 1,
-		Debug:   true,
-	}
+	initDaemon()
 	if len(flag.Args()) > 0 {
 		fmt.Printf("%s", Cli())
 		return
@@ -84,6 +74,19 @@ func main() {
 		RunDaemon()
 		httpS.HttpServer()
 		return
+	}
+}
+
+func initDaemon() {
+	daemon = &goforever.Process{
+		Name:    "goforever",
+		Args:    []string{},
+		Command: filepath.Base(os.Args[0]),
+		Pidfile: config.Pidfile,
+		Logfile: config.Logfile,
+		Errfile: config.Errfile,
+		Respawn: 1,
+		Debug:   true,
 	}
 }
 
@@ -136,17 +139,18 @@ func Cli() string {
 }
 
 func RunDaemon() {
-	daemon.Children = make(map[string]*goforever.Process)
+	children := map[string]*goforever.Process{}
 	for _, name := range config.Keys() {
-		daemon.Children[name] = config.Get(name)
-		daemon.Children[name].Debug = true
+		children[name] = config.Get(name)
+		children[name].Debug = true
 	}
+	daemon.SetChildren(children)
 	daemon.Run()
 }
 
 func setConfig() {
 	var err error
-	config, err = cfg.Load(*conf)
+	config, err = cfg.Load(conf)
 	if err != nil {
 		log.Fatalf("%s", err)
 		return

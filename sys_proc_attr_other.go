@@ -10,8 +10,8 @@ import (
 	"syscall"
 )
 
-func (p *Process) setSysProcAttr(attr *syscall.SysProcAttr) error {
-	userInfo, err := user.Lookup(p.User)
+func SetSysProcAttr(attr *syscall.SysProcAttr, userName string, hideWindow bool) error {
+	userInfo, err := user.Lookup(userName)
 	if err != nil {
 		return errors.New("failed to get user: " + err.Error())
 	}
