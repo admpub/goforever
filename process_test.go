@@ -4,6 +4,7 @@
 package goforever
 
 import (
+	"flag"
 	"os"
 	"os/exec"
 	"os/user"
@@ -58,7 +59,18 @@ func TestProcessStart(t *testing.T) {
 	p.Stop()
 }
 
-// sudo go test -v -count=1 -run "TestProcessStartByUser"
+var testuser string
+
+func TestMain(t *testing.M) {
+	u, err := user.Current()
+	if err == nil {
+		testuser = u.Username
+	}
+	flag.StringVar(&testuser, `user`, testuser, `--user `+testuser)
+	t.Run()
+}
+
+// sudo go test -v -count=1 -run "TestProcessStartByUser" --user=aaa
 func TestProcessStartByUser(t *testing.T) {
 	os.Remove("debug.log")
 	p := &Process{
@@ -71,7 +83,7 @@ func TestProcessStartByUser(t *testing.T) {
 		Errfile: "error.log",
 		Respawn: 3,
 		Debug:   true,
-		User:    `aaa`,
+		User:    testuser,
 	}
 	bin := `./example/example`
 	cmd := exec.Command(`go`, `build`, `-o`, bin, `./example`)
