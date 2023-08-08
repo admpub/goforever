@@ -55,7 +55,7 @@ func TestProcessStart(t *testing.T) {
 }
 
 func TestUser(t *testing.T) {
-	u, err := user.Lookup(`hank`)
+	u, err := user.Lookup(`nobody`)
 	if err != nil {
 		t.Error(err)
 	} else {
