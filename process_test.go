@@ -86,6 +86,9 @@ func TestProcessStartByUser(t *testing.T) {
 		User:    testuser,
 	}
 	bin := `./example/example`
+	if com.IsWindows {
+		bin = `C:\Users\test\example.exe`
+	}
 	cmd := exec.Command(`go`, `build`, `-o`, bin, `./example`)
 	err := cmd.Run()
 	if err != nil {

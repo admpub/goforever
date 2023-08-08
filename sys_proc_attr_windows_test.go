@@ -3,9 +3,9 @@
 package goforever
 
 import (
-	"os"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"golang.org/x/sys/windows"
 )
 
@@ -19,9 +19,19 @@ func TestWindowsSID(t *testing.T) {
 }
 
 func TestWindowsToken(t *testing.T) {
-	token, err := getToken(os.Getpid())
+	//token, err := getTokenByPid(2476)
+	token, err := getToken(``, `PC`)
 	if err != nil {
 		t.Error(err)
 	}
 	t.Logf(`token: %v`, token)
+}
+
+func TestGetPidByUsername(t *testing.T) {
+	pid, err := getPidByUsername(`Hank-MiniPC\test`)
+	if err != nil {
+		t.Error(err)
+	}
+	assert.Greater(t, pid, int32(0))
+	t.Logf(`pid: %v`, pid)
 }
