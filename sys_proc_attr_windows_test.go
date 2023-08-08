@@ -10,11 +10,11 @@ import (
 )
 
 func TestWindowsSID(t *testing.T) {
-	sid, a, b, err := windows.LookupSID(`Hank-MiniPC`, `PC`)
+	sid, domain, accType, err := windows.LookupSID(`Hank-MiniPC`, `PC`)
 	if err != nil {
 		t.Error(err)
 	}
-	t.Logf(`sid: %v, %v, %v`, sid, a, b)
+	t.Logf(`sid: %v, domain: %v, accType: %v`, sid, domain, accType)
 	t.Logf(`uid: %v`, sid.String())
 }
 
