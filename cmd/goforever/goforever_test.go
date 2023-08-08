@@ -9,6 +9,8 @@ import (
 )
 
 func Test_main(t *testing.T) {
+	setConfig()
+	initDaemon()
 	if daemon.Name != "goforever" {
 		t.Error("Daemon name is not goforever")
 	}

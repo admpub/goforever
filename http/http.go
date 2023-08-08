@@ -63,6 +63,25 @@ func (h *HTTP) Handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type ProcessInfo struct {
+	*goforever.Process
+	Pid    int
+	Status string
+}
+
+func (p ProcessInfo) String() string {
+	js, err := json.Marshal(p)
+	if err != nil {
+		log.Println(err)
+		return ""
+	}
+	return string(js)
+}
+
+func NewProcessInfo(p *goforever.Process) ProcessInfo {
+	return ProcessInfo{Process: p, Pid: p.Pid(), Status: p.Status()}
+}
+
 func (h *HTTP) GetHandler(w http.ResponseWriter, r *http.Request) {
 	var output []byte
 	var err error
@@ -70,7 +89,8 @@ func (h *HTTP) GetHandler(w http.ResponseWriter, r *http.Request) {
 	case "":
 		output, err = json.Marshal(h.daemon.ChildKeys())
 	default:
-		output, err = json.Marshal(h.daemon.Child(r.URL.Path[1:]))
+		p := h.daemon.Child(r.URL.Path[1:])
+		output, err = json.Marshal(NewProcessInfo(p))
 	}
 	if err != nil {
 		log.Printf("Get Error: %#v\n", err)
@@ -86,7 +106,7 @@ func (h *HTTP) PostHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, err)
 		return
 	}
-	fmt.Fprintf(w, "%s", ch)
+	fmt.Fprintf(w, "%s", NewProcessInfo(ch))
 }
 
 func (h *HTTP) PutHandler(w http.ResponseWriter, r *http.Request) {
@@ -96,7 +116,7 @@ func (h *HTTP) PutHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, err)
 		return
 	}
-	fmt.Fprintf(w, "%s", ch)
+	fmt.Fprintf(w, "%s", NewProcessInfo(ch))
 }
 
 func (h *HTTP) DeleteHandler(w http.ResponseWriter, r *http.Request) {

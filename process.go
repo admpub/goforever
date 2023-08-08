@@ -31,11 +31,11 @@ func RunProcess(name string, p *Process) chan *Process {
 			p.Start(name)
 		}
 		p.ping(ping, func(time time.Duration, p *Process) {
-			if p.Pid > 0 {
+			if p.pid > 0 {
 				p.respawns = 0
 				log.Println(p.logPrefix()+"refreshed after", time)
-				p.Status = StatusRunning
-				p.RunHook(p.Status)
+				p.status = StatusRunning
+				p.RunHook(p.status)
 			}
 		})
 		go p.watch()
@@ -54,27 +54,48 @@ const (
 )
 
 type Process struct {
-	Name     string
-	Command  string
-	Env      []string
-	Dir      string
-	Args     []string
-	User     string
-	Pidfile  Pidfile
-	Logfile  string
-	Errfile  string
-	Path     string
-	Respawn  int
-	Delay    string
-	Ping     string
-	Pid      int
-	Status   string
-	Debug    bool
+	Name       string
+	Command    string
+	Env        []string
+	Dir        string
+	Args       []string
+	User       string
+	HideWindow bool // for windows
+	Pidfile    Pidfile
+	Logfile    string
+	Errfile    string
+	Respawn    int
+	Delay      string
+	Ping       string
+	Debug      bool
+
+	pid      int
+	status   string
 	x        *os.Process
 	respawns int
-	Children Children
+	children Children
 	hooks    map[string][]func(procs *Process)
 	err      error
+}
+
+func (p *Process) Init() {
+	p.SetChildren(map[string]*Process{})
+}
+
+func (p *Process) SetChildren(children map[string]*Process) {
+	p.children = children
+}
+
+func (p *Process) SetChildKV(name string, proc *Process) {
+	p.children[name] = proc
+}
+
+func (p *Process) Status() string {
+	return p.status
+}
+
+func (p *Process) Pid() int {
+	return p.pid
 }
 
 func (p *Process) Reset() error {
@@ -146,9 +167,9 @@ func (p *Process) Find() (*os.Process, string, error) {
 			return nil, "", err
 		}
 		p.x = process
-		p.Pid = process.Pid
-		p.Status = StatusRunning
-		p.RunHook(p.Status)
+		p.pid = process.Pid
+		p.status = StatusRunning
+		p.RunHook(p.status)
 		message := fmt.Sprintf(p.logPrefix()+"%s is %#v", p.Name, process.Pid)
 		return process, message, nil
 	}
@@ -186,7 +207,7 @@ func (p *Process) Start(name string) string {
 	}
 	if len(p.User) > 0 {
 		proc.Sys = &syscall.SysProcAttr{}
-		if err := p.setSysProcAttr(proc.Sys); err != nil {
+		if err := SetSysProcAttr(proc.Sys, p.User, p.HideWindow); err != nil {
 			p.err = errors.New(logPrefix + err.Error())
 			log.Println(p.err.Error())
 			return ""
@@ -220,9 +241,9 @@ func (p *Process) Start(name string) string {
 		return ""
 	}
 	p.x = process
-	p.Pid = process.Pid
-	p.Status = StatusStarted
-	p.RunHook(p.Status)
+	p.pid = process.Pid
+	p.status = StatusStarted
+	p.RunHook(p.status)
 	return fmt.Sprintf(logPrefix+"%s is %#v", p.Name, process.Pid)
 }
 
@@ -243,7 +264,7 @@ func (p *Process) Stop() string {
 		} else {
 			log.Println(logPrefix + "Stop command seemed to work")
 		}
-		p.Children.Stop()
+		p.children.Stop()
 	}
 	p.release(StatusStopped)
 	message := fmt.Sprintf(logPrefix + "stopped.")
@@ -256,11 +277,11 @@ func (p *Process) release(status string) {
 	if p.x != nil {
 		p.x.Release()
 	}
-	p.Pid = 0
+	p.pid = 0
 	// 去掉删除pid文件的动作，用于goforever进程重启后继续监控，防止启动重复进程
 	//p.Pidfile.Delete()
-	p.Status = status
-	p.RunHook(p.Status)
+	p.status = status
+	p.RunHook(p.status)
 }
 
 // Restart the process
@@ -301,7 +322,7 @@ func (p *Process) watch() {
 	go func() {
 		var err error
 		// state, err := p.x.Wait()
-		proc, _ := ps.FindProcess(p.Pid)
+		proc, _ := ps.FindProcess(p.pid)
 		var ppid int
 		var state = &os.ProcessState{}
 		if proc != nil {
@@ -313,7 +334,7 @@ func (p *Process) watch() {
 		} else {
 			for {
 				time.Sleep(1 * time.Second)
-				proc, err = ps.FindProcess(p.Pid)
+				proc, err = ps.FindProcess(p.pid)
 				if err != nil || proc == nil {
 					break
 				}
@@ -327,8 +348,8 @@ func (p *Process) watch() {
 	}()
 	select {
 	case s := <-status:
-		if p.Status == StatusStopped {
-			p.RunHook(p.Status)
+		if p.status == StatusStopped {
+			p.RunHook(p.status)
 			return
 		}
 		logPrefix := p.logPrefix() + ` `
@@ -347,8 +368,8 @@ func (p *Process) watch() {
 			time.Sleep(t)
 		}
 		p.Restart()
-		p.Status = StatusRestarted
-		p.RunHook(p.Status)
+		p.status = StatusRestarted
+		p.RunHook(p.status)
 	case err := <-died:
 		p.release(StatusKilled)
 		log.Printf(p.logPrefix()+"%d %s killed = %#v\n", p.x.Pid, p.Name, err)
@@ -357,7 +378,7 @@ func (p *Process) watch() {
 
 // Run child processes
 func (p *Process) Run() {
-	for name, p := range p.Children {
+	for name, p := range p.children {
 		RunProcess(name, p)
 	}
 }
@@ -400,12 +421,12 @@ func (p *Process) StopChild(name string) error {
 }
 
 func (p *Process) Child(name string) *Process {
-	return p.Children.Get(name)
+	return p.children.Get(name)
 }
 
 func (p *Process) Add(name string, procs *Process, run ...bool) *Process {
 	p.StopChild(name)
-	p.Children[name] = procs
+	p.children[name] = procs
 	if len(run) > 0 && run[0] {
 		RunProcess(name, procs)
 	}
@@ -413,5 +434,5 @@ func (p *Process) Add(name string, procs *Process, run ...bool) *Process {
 }
 
 func (p *Process) ChildKeys() []string {
-	return p.Children.Keys()
+	return p.children.Keys()
 }
