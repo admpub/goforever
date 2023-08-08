@@ -6,17 +6,30 @@ import (
 	"fmt"
 	"os"
 	"syscall"
-	//"golang.org/x/sys/windows"
+
+	"github.com/webx-top/com"
 )
 
-func SetSysProcAttr(attr *syscall.SysProcAttr, userName string, hideWindow bool) error {
+func buildOption(options map[string]interface{}) map[string]interface{} {
+	if options == nil {
+		options = map[string]interface{}{}
+	}
+	options[`HideWindow`] = false
+	return options
+}
+
+func SetSysProcAttr(attr *syscall.SysProcAttr, userName string, options map[string]interface{}) (func(), error) {
 	token, err := getToken(os.Getpid())
 	if err != nil {
-		return err
+		return nil, err
 	}
-	attr.HideWindow = hideWindow
+	if v, y := options[`HideWindow`]; y {
+		attr.HideWindow = com.Bool(v)
+	}
 	attr.Token = token
-	return nil
+	return func() {
+		token.Close()
+	}, nil
 }
 
 func getToken(pid int) (syscall.Token, error) {

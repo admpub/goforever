@@ -54,20 +54,23 @@ const (
 )
 
 type Process struct {
-	Name       string
-	Command    string
-	Env        []string
-	Dir        string
-	Args       []string
-	User       string
-	HideWindow bool // for windows
-	Pidfile    Pidfile
-	Logfile    string
-	Errfile    string
-	Respawn    int
-	Delay      string
-	Ping       string
-	Debug      bool
+	Name    string
+	Command string
+	Env     []string
+	Dir     string
+	Args    []string
+	User    string
+	Pidfile Pidfile
+	Logfile string
+	Errfile string
+	Respawn int
+	Delay   string
+	Ping    string
+	Debug   bool
+
+	// Options
+	// HideWindow bool // for windows
+	Options map[string]interface{} `json:",omitempty" xml:",omitempty"`
 
 	pid      int
 	status   string
@@ -75,11 +78,13 @@ type Process struct {
 	respawns int
 	children Children
 	hooks    map[string][]func(procs *Process)
+	cleanup  func()
 	err      error
 }
 
 func (p *Process) Init() {
 	p.SetChildren(map[string]*Process{})
+	p.Options = buildOption(p.Options)
 }
 
 func (p *Process) SetChildren(children map[string]*Process) {
@@ -207,11 +212,13 @@ func (p *Process) Start(name string) string {
 	}
 	if len(p.User) > 0 {
 		proc.Sys = &syscall.SysProcAttr{}
-		if err := SetSysProcAttr(proc.Sys, p.User, p.HideWindow); err != nil {
+		cleanup, err := SetSysProcAttr(proc.Sys, p.User, p.Options)
+		if err != nil {
 			p.err = errors.New(logPrefix + err.Error())
 			log.Println(p.err.Error())
 			return ""
 		}
+		p.cleanup = cleanup
 	}
 	args := com.ParseArgs(p.Command)
 	args = append(args, p.Args...)
@@ -282,6 +289,9 @@ func (p *Process) release(status string) {
 	//p.Pidfile.Delete()
 	p.status = status
 	p.RunHook(p.status)
+	if p.cleanup != nil {
+		p.cleanup()
+	}
 }
 
 // Restart the process

@@ -73,3 +73,16 @@ func Load(file string) (*Config, error) {
 	}
 	return c, nil
 }
+
+func (cfg *Config) Export(file string) error {
+	f, err := os.Create(file)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	enc := toml.NewEncoder(f)
+	for _, proc := range cfg.Processes {
+		proc.Init()
+	}
+	return enc.Encode(cfg)
+}

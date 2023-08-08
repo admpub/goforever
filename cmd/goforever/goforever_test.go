@@ -4,8 +4,10 @@
 package main
 
 import (
-	//"fmt"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/webx-top/com"
 )
 
 func Test_main(t *testing.T) {
@@ -21,4 +23,10 @@ func Test_main(t *testing.T) {
 	}
 	daemon.Find()
 	daemon.Stop()
+
+	if com.IsWindows {
+		assert.Equal(t, map[string]interface{}{
+			`HideWindow`: false,
+		}, config.Processes[len(config.Processes)-1].Options)
+	}
 }

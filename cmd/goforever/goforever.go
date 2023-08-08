@@ -65,6 +65,10 @@ func main() {
 
 	setConfig()
 	initDaemon()
+	// if err := config.Export(conf + ".test"); err != nil {
+	// 	log.Fatalln(err.Error())
+	// }
+	// return
 	if len(flag.Args()) > 0 {
 		fmt.Printf("%s", Cli())
 		return
