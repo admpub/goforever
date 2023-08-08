@@ -12,6 +12,8 @@ import (
 	"github.com/webx-top/com"
 )
 
+var debug bool
+
 func buildOption(options map[string]interface{}) map[string]interface{} {
 	if options == nil {
 		options = map[string]interface{}{}
@@ -74,12 +76,12 @@ func getPidByUsername(username string, exename ...string) (int32, error) {
 		if err != nil {
 			return 0, err
 		}
-		if len(name) > 0 {
+		if len(name) > 0 || debug {
 			pname, err = proc.Name()
 			if err != nil {
 				return 0, fmt.Errorf(`failed to query proc.Name(): %w`, err)
 			}
-			if !strings.EqualFold(pname, name) {
+			if len(name) > 0 && !strings.EqualFold(pname, name) {
 				continue
 			}
 		}
@@ -88,7 +90,9 @@ func getPidByUsername(username string, exename ...string) (int32, error) {
 			err = fmt.Errorf(`failed to query proc.Username(): %w`, err)
 			continue
 		}
-		fmt.Println(`pname:`, pname, `username:`, username, `pusername:`, pusername)
+		if debug {
+			fmt.Println(`pname:`, pname, `username:`, username, `pusername:`, pusername)
+		}
 		if strings.EqualFold(pusername, username) {
 			return pid, nil
 		}

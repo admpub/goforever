@@ -5,9 +5,14 @@ package goforever
 import (
 	"testing"
 
+	"github.com/fourcorelabs/wintoken"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/sys/windows"
 )
+
+func init() {
+	debug = true
+}
 
 func TestWindowsSID(t *testing.T) {
 	sid, domain, accType, err := windows.LookupSID(`Hank-MiniPC`, `PC`)
@@ -23,6 +28,8 @@ func TestWindowsToken(t *testing.T) {
 	token, err := getToken(``, `PC`)
 	if err != nil {
 		t.Error(err)
+	} else {
+		defer token.Close()
 	}
 	t.Logf(`token: %v`, token)
 }
@@ -34,4 +41,19 @@ func TestGetPidByUsername(t *testing.T) {
 	}
 	assert.Greater(t, pid, int32(0))
 	t.Logf(`pid: %v`, pid)
+}
+
+func TestGetTokenByPid(t *testing.T) {
+	pid, err := getPidByUsername(`Hank-MiniPC\test`)
+	if err != nil {
+		t.Error(err)
+	}
+	token, err := wintoken.OpenProcessToken(int(pid), wintoken.TokenPrimary)
+	if err != nil {
+		t.Error(err)
+	} else {
+		defer token.Close()
+	}
+	t.Logf(`token: %v`, token)
+
 }
