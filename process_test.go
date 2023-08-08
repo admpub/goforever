@@ -58,12 +58,8 @@ func TestProcessStart(t *testing.T) {
 	p.Stop()
 }
 
+// sudo go test -v -count=1 -run "TestProcessStartByUser"
 func TestProcessStartByUser(t *testing.T) {
-	cmd := exec.Command(`go`, `build`, `-o`, `./example/example`, `./example`)
-	err := cmd.Run()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
 	os.Remove("debug.log")
 	p := &Process{
 		Name:    "bash",
@@ -75,9 +71,15 @@ func TestProcessStartByUser(t *testing.T) {
 		Errfile: "error.log",
 		Respawn: 3,
 		Debug:   true,
-		User:    `admpub`,
+		User:    `aaa`,
 	}
-	p.Start("bash")
+	bin := `./example/example`
+	cmd := exec.Command(`go`, `build`, `-o`, bin, `./example`)
+	err := cmd.Run()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	p.Start("bash") // 此测试用例必须用root身份执行，否则报错：fork/exec ./example: operation not permitted
 	ex := 0
 	r := p.x.Pid
 	if ex >= r {
