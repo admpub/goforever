@@ -6,6 +6,7 @@ package goforever
 import (
 	"os/user"
 	"testing"
+	"time"
 
 	"github.com/webx-top/com"
 )
@@ -51,6 +52,29 @@ func TestProcessStart(t *testing.T) {
 	if ex >= r {
 		t.Errorf("Expected %#v < %#v\n", ex, r)
 	}
+	p.Stop()
+}
+
+func TestProcessStartByUser(t *testing.T) {
+	p := &Process{
+		Name:    "bash",
+		Command: "./example",
+		Dir:     `./example`,
+		Args:    []string{"foo", "bar"},
+		Pidfile: "echo.pid",
+		Logfile: "debug.log",
+		Errfile: "error.log",
+		Respawn: 3,
+		Debug:   true,
+		User:    `admpub`,
+	}
+	p.Start("bash")
+	ex := 0
+	r := p.x.Pid
+	if ex >= r {
+		t.Errorf("Expected %#v < %#v\n", ex, r)
+	}
+	time.Sleep(10 * time.Second)
 	p.Stop()
 }
 
