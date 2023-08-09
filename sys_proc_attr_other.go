@@ -14,7 +14,7 @@ func buildOption(options map[string]interface{}) map[string]interface{} {
 	return options
 }
 
-func SetSysProcAttr(attr *syscall.SysProcAttr, userName string, hideWindow bool) (func(), error) {
+func SetSysProcAttr(attr *syscall.SysProcAttr, userName string, options map[string]interface{}) (func(), error) {
 	userInfo, err := user.Lookup(userName)
 	if err != nil {
 		return nil, errors.New("failed to get user: " + err.Error())
