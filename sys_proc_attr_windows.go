@@ -3,6 +3,7 @@
 package goforever
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -19,6 +20,7 @@ func buildOption(options map[string]interface{}) map[string]interface{} {
 		options = map[string]interface{}{}
 	}
 	options[`HideWindow`] = false
+	options[`Password`] = ``
 	return options
 }
 
@@ -32,16 +34,27 @@ func SetSysProcAttr(attr *syscall.SysProcAttr, userName string, options map[stri
 		system = parts[0]
 		userName = parts[1]
 	}
-	token, err := getToken(system, userName)
+	var token syscall.Token
+	if v, y := options[`Password`]; y {
+		password := com.String(v)
+		token, err = LogonUser(userName, password, Logon32LogonInteractive)
+	} else {
+		token, err = getToken(system, userName)
+	}
 	if err != nil {
 		return nil, err
 	}
 	if v, y := options[`HideWindow`]; y {
 		attr.HideWindow = com.Bool(v)
 	}
+	//attr.CreationFlags = syscall.CREATE_NEW_PROCESS_GROUP
 	attr.Token = token
+	var closed bool
 	return func() {
-		token.Close()
+		if !closed {
+			closed = true
+			token.Close()
+		}
 	}, nil
 }
 
@@ -53,12 +66,16 @@ func getToken(system, user string) (token syscall.Token, err error) {
 			return
 		}
 	}
+
+	// 仅用于此用户已经登录系统的情况
 	pid, err := getPidByUsername(system + `\` + user)
 	if err != nil {
 		return 0, err
 	}
 	return getTokenByPid(uint32(pid))
 }
+
+var ErrUsersProcessNotFound = errors.New(`the user's process not found`)
 
 func getPidByUsername(username string, exename ...string) (int32, error) {
 	var name string
@@ -91,7 +108,7 @@ func getPidByUsername(username string, exename ...string) (int32, error) {
 			continue
 		}
 		if debug {
-			fmt.Println(`pname:`, pname, `username:`, username, `pusername:`, pusername)
+			fmt.Println(`pname:`, pname, `pusername:`, pusername)
 		}
 		if strings.EqualFold(pusername, username) {
 			return pid, nil
@@ -100,7 +117,10 @@ func getPidByUsername(username string, exename ...string) (int32, error) {
 	if err != nil {
 		return 0, err
 	}
-	err = fmt.Errorf(`the process(username: %v, name: %v) not found`, username, name)
+	if len(name) == 0 {
+		name = `<any>`
+	}
+	err = fmt.Errorf(`%w: process(name: %v, username: %v) not found`, ErrUsersProcessNotFound, name, username)
 	return 0, err
 }
 
@@ -114,6 +134,7 @@ func getTokenByPid(pid uint32) (syscall.Token, error) {
 	}
 	defer syscall.CloseHandle(handle)
 	// Find process token via win32
+	// 仅用于在以服务的方式启动的程序内调用，否则会报错
 	err = syscall.OpenProcessToken(handle, syscall.TOKEN_ALL_ACCESS, &token)
 	if err != nil {
 		return 0, fmt.Errorf("failed to OpenProcessToken(%d): %w", handle, err)

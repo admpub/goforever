@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -59,40 +60,54 @@ func TestProcessStart(t *testing.T) {
 	p.Stop()
 }
 
-var testuser string
+var testuser string = `hank-minipc\test`
+var testpass string
 
 func TestMain(t *testing.M) {
-	u, err := user.Current()
-	if err == nil {
-		testuser = u.Username
+	if len(testuser) == 0 {
+		u, err := user.Current()
+		if err == nil {
+			testuser = u.Username
+		}
 	}
 	flag.StringVar(&testuser, `user`, testuser, `--user `+testuser)
+	flag.StringVar(&testpass, `pass`, testpass, `--pass `+testpass)
 	t.Run()
 }
 
-// sudo go test -v -count=1 -run "TestProcessStartByUser" --user=aaa
+// sudo go test -v -count=1 -run "TestProcessStartByUser" --user=aaa --pass=yourWindowsPassword
 func TestProcessStartByUser(t *testing.T) {
 	os.Remove("debug.log")
 	p := &Process{
 		Name:    "bash",
 		Command: "./example",
 		Dir:     `./example`,
-		Args:    []string{"foo", "bar"},
+		Args:    []string{},
 		Pidfile: "echo.pid",
 		Logfile: "debug.log",
 		Errfile: "error.log",
 		Respawn: 3,
 		Debug:   true,
 		User:    testuser,
+		Options: map[string]interface{}{
+			//`HideWindow`: true,
+			`Password`: testpass,
+		},
 	}
+	//com.Dump(p)
 	bin := `./example/example`
 	if com.IsWindows {
 		bin = `C:\Users\test\example.exe`
+		p.Dir = `C:\Users\test`
+		p.Command = bin
+		p.Pidfile = Pidfile(filepath.Join(p.Dir, "echo.pid"))
+		p.Logfile = filepath.Join(p.Dir, "debug.log")
+		p.Errfile = filepath.Join(p.Dir, "error.log")
 	}
 	cmd := exec.Command(`go`, `build`, `-o`, bin, `./example`)
 	err := cmd.Run()
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Error(cmd.String() + `: ` + err.Error())
 	}
 	p.Start("bash") // 此测试用例必须用root身份执行，否则报错：fork/exec ./example: operation not permitted
 	ex := 0

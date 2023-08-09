@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	debug = true
+	//debug = true
 }
 
 func TestWindowsSID(t *testing.T) {
