@@ -5,7 +5,6 @@ package goforever
 import (
 	"testing"
 
-	"github.com/fourcorelabs/wintoken"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/sys/windows"
 )
@@ -48,7 +47,7 @@ func TestGetTokenByPid(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	token, err := wintoken.OpenProcessToken(int(pid), wintoken.TokenPrimary)
+	token, err := getTokenByPid(uint32(pid))
 	if err != nil {
 		t.Error(err)
 	} else {
