@@ -14,6 +14,10 @@ func buildOption(options map[string]interface{}) map[string]interface{} {
 	return options
 }
 
+func SetOption(options map[string]interface{}, name string, value interface{}) map[string]interface{} {
+	return options
+}
+
 func SetSysProcAttr(attr *syscall.SysProcAttr, userName string, options map[string]interface{}) (func(), error) {
 	userInfo, err := user.Lookup(userName)
 	if err != nil {

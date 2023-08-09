@@ -24,6 +24,17 @@ func buildOption(options map[string]interface{}) map[string]interface{} {
 	return options
 }
 
+func SetOption(options map[string]interface{}, name string, value interface{}) map[string]interface{} {
+	name := com.PascalCase(name)
+	switch name {
+	case `HideWindow`:
+		options[name] = com.Bool(value)
+	case `Password`:
+		options[name] = com.Str(value)
+	}
+	return options
+}
+
 func SetSysProcAttr(attr *syscall.SysProcAttr, userName string, options map[string]interface{}) (func(), error) {
 	parts := strings.SplitN(userName, `\`, 2)
 	var system string
