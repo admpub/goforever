@@ -3,6 +3,8 @@
 package goforever
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"os"
 	"runtime"
@@ -239,36 +241,72 @@ func DuplicateTokenEx(token syscall.Token, tokenType tokenType) (syscall.Token, 
 	return syscall.Token(duplicatedToken), nil
 }
 
-func RunAs() {
-	// Determine if running as SYSTEM
-	u, err := tokens.GetTokenUsername(windows.GetCurrentProcessToken())
+// GetTokenUsername returns the domain and username associated with the provided token as a string
+func GetTokenUsername(token windows.Token) (username string, err error) {
+	user, err := token.GetTokenUser()
 	if err != nil {
-		results.Stderr = err.Error()
-		return
+		return "", fmt.Errorf("there was an error calling GetTokenUser(): %s", err)
 	}
 
-	// If we are running as SYSTEM, we can't call CreateProcess, must call LogonUserA -> CreateProcessAsUserA/CreateProcessWithTokenW
-	if u == "NT AUTHORITY\\SYSTEM" {
-		hToken, err2 := tokens.LogonUser(username, password, "", tokens.LOGON32_LOGON_INTERACTIVE, tokens.LOGON32_PROVIDER_DEFAULT)
-		if err2 != nil {
-			results.Stderr = err2.Error()
-			return
-		}
-		//results.Stdout, results.Stderr = tokens.CreateProcessWithToken(hToken, application, strings.Split(arguments, " "))
-		var args []string
-		if len(cmd.Args) > 3 {
-			args = cmd.Args[3:]
-		}
-
-		attr := &syscall.SysProcAttr{
-			HideWindow: true,
-			Token:      syscall.Token(hToken),
-		}
-		results.Stdout, results.Stderr = executeCommandWithAttributes(application, args, attr)
-		return
+	account, domain, _, err := user.User.Sid.LookupAccount("")
+	if err != nil {
+		return "", fmt.Errorf("there was an error calling SID.LookupAccount(): %s", err)
 	}
 
-	results.Stdout, results.Stderr = processes.CreateProcessWithLogon(username, "", password, application, arguments, processes.LOGON_WITH_PROFILE, true)
-
+	username = fmt.Sprintf("%s\\%s", domain, account)
 	return
 }
+
+// GetTokenSessionId returns the session ID associated with the token
+func GetTokenSessionId(token windows.Token) (sessionId uint32, err error) {
+	// Determine the size needed for the structure
+	var returnLength uint32
+	err = windows.GetTokenInformation(token, windows.TokenSessionId, nil, 0, &returnLength)
+	if err != nil && err != syscall.ERROR_INSUFFICIENT_BUFFER {
+		err = fmt.Errorf("there was an error calling windows.GetTokenInformation: %s", err)
+		return
+	}
+
+	// Make the call with the known size of the object
+	info := bytes.NewBuffer(make([]byte, returnLength))
+	var returnLength2 uint32
+	err = windows.GetTokenInformation(token, windows.TokenSessionId, &info.Bytes()[0], returnLength, &returnLength2)
+	if err != nil {
+		err = fmt.Errorf("there was an error calling windows.GetTokenInformation: %s", err)
+		return
+	}
+
+	err = binary.Read(info, binary.LittleEndian, &sessionId)
+	if err != nil {
+		err = fmt.Errorf("there was an error reading binary into the TokenSessionId DWORD: %s", err)
+		return
+	}
+	return
+}
+
+// func RunAs(user, pass string) (error) {
+// 	// Determine if running as SYSTEM
+// 	username, err := GetTokenUsername(windows.GetCurrentProcessToken())
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	// If we are running as SYSTEM, we can't call CreateProcess, must call LogonUserA -> CreateProcessAsUserA/CreateProcessWithTokenW
+// 	if username == `NT AUTHORITY\SYSTEM` {
+// 		token, err := LogonUser(user, pass, Logon32LogonInteractive)
+// 		if err != nil {
+// 			return err
+// 		}
+// 		_ = token
+// 		return err
+// 	}
+
+// 	var domain string
+// 	parts := strings.SplitN(user, `\`, 2)
+// 	if len(parts)==2 {
+// 		domain=parts[0]
+// 		user=parts[1]
+// 	}
+// 	_, err = CreateProcessWithLogon(user, pass, domain, ``,``,``)
+// 	return err
+// }
