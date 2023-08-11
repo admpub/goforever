@@ -238,3 +238,37 @@ func DuplicateTokenEx(token syscall.Token, tokenType tokenType) (syscall.Token, 
 	}
 	return syscall.Token(duplicatedToken), nil
 }
+
+func RunAs() {
+	// Determine if running as SYSTEM
+	u, err := tokens.GetTokenUsername(windows.GetCurrentProcessToken())
+	if err != nil {
+		results.Stderr = err.Error()
+		return
+	}
+
+	// If we are running as SYSTEM, we can't call CreateProcess, must call LogonUserA -> CreateProcessAsUserA/CreateProcessWithTokenW
+	if u == "NT AUTHORITY\\SYSTEM" {
+		hToken, err2 := tokens.LogonUser(username, password, "", tokens.LOGON32_LOGON_INTERACTIVE, tokens.LOGON32_PROVIDER_DEFAULT)
+		if err2 != nil {
+			results.Stderr = err2.Error()
+			return
+		}
+		//results.Stdout, results.Stderr = tokens.CreateProcessWithToken(hToken, application, strings.Split(arguments, " "))
+		var args []string
+		if len(cmd.Args) > 3 {
+			args = cmd.Args[3:]
+		}
+
+		attr := &syscall.SysProcAttr{
+			HideWindow: true,
+			Token:      syscall.Token(hToken),
+		}
+		results.Stdout, results.Stderr = executeCommandWithAttributes(application, args, attr)
+		return
+	}
+
+	results.Stdout, results.Stderr = processes.CreateProcessWithLogon(username, "", password, application, arguments, processes.LOGON_WITH_PROFILE, true)
+
+	return
+}
