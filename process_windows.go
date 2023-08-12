@@ -14,6 +14,10 @@ import (
 )
 
 func (p *Process) StartProcess(name string, argv []string, attr *os.ProcAttr) (Processer, error) {
+	var hide bool
+	if v, y := p.Options[`HideWindow`]; y {
+		hide = com.Bool(v)
+	}
 	if len(p.User) > 0 {
 		parts := strings.SplitN(p.User, `\`, 2)
 		var system string
@@ -28,10 +32,6 @@ func (p *Process) StartProcess(name string, argv []string, attr *os.ProcAttr) (P
 		var password string
 		if v, y := p.Options[`Password`]; y {
 			password = com.String(v)
-		}
-		var hide bool
-		if v, y := p.Options[`HideWindow`]; y {
-			hide = com.Bool(v)
 		}
 
 		/* /
@@ -51,9 +51,6 @@ func (p *Process) StartProcess(name string, argv []string, attr *os.ProcAttr) (P
 		}
 		// */
 
-		attr.Sys = &syscall.SysProcAttr{
-			HideWindow: hide,
-		}
 		var token syscall.Token
 		if len(password) > 0 {
 			token, err = LogonUser(userName, password, Logon32LogonInteractive)
@@ -62,6 +59,9 @@ func (p *Process) StartProcess(name string, argv []string, attr *os.ProcAttr) (P
 		}
 		if err != nil {
 			return nil, err
+		}
+		attr.Sys = &syscall.SysProcAttr{
+			HideWindow: hide,
 		}
 		//attr.CreationFlags = syscall.CREATE_NEW_PROCESS_GROUP
 		attr.Sys.Token = token
@@ -72,6 +72,11 @@ func (p *Process) StartProcess(name string, argv []string, attr *os.ProcAttr) (P
 				token.Close()
 			}
 		}
+	} else if hide {
+		if attr.Sys == nil {
+			attr.Sys = &syscall.SysProcAttr{}
+		}
+		attr.Sys.HideWindow = hide
 	}
 	process, err := os.StartProcess(name, argv, attr)
 	if err != nil {

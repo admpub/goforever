@@ -14,7 +14,7 @@ import (
 func (p *Process) StartProcess(name string, argv []string, attr *os.ProcAttr) (Processer, error) {
 	if len(p.User) > 0 {
 		attr.Sys = &syscall.SysProcAttr{}
-		userInfo, err := user.Lookup(userName)
+		userInfo, err := user.Lookup(p.User)
 		if err != nil {
 			return nil, errors.New("failed to get user: " + err.Error())
 		}
@@ -26,7 +26,7 @@ func (p *Process) StartProcess(name string, argv []string, attr *os.ProcAttr) (P
 		if err != nil {
 			return nil, fmt.Errorf("failed to ParseUint(userInfo.Gid=%q): %w", userInfo.Gid, err)
 		}
-		attr.Credential = &syscall.Credential{
+		attr.Sys.Credential = &syscall.Credential{
 			Uid:         uint32(uid),
 			Gid:         uint32(gid),
 			NoSetGroups: true,
