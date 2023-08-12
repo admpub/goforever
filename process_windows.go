@@ -34,7 +34,7 @@ func (p *Process) StartProcess(name string, argv []string, attr *os.ProcAttr) (P
 			password = com.String(v)
 		}
 
-		/* /
+		//* /
 		// Determine if running as SYSTEM
 		currentUser, err := GetTokenUsername(windows.GetCurrentProcessToken())
 		if err != nil {
@@ -44,6 +44,12 @@ func (p *Process) StartProcess(name string, argv []string, attr *os.ProcAttr) (P
 		// If we are running as SYSTEM, we can't call CreateProcess, must call LogonUserA -> CreateProcessAsUserA/CreateProcessWithTokenW
 		if currentUser != `NT AUTHORITY\SYSTEM` {
 			processInfo, err := CreateProcessWithLogon(p.User, password, system, name, windows.ComposeCommandLine(argv), attr.Dir, attr.Env, hide)
+			if err != nil {
+				return nil, err
+			}
+			pid := int(processInfo.ProcessId)
+			//handle := uintptr(processInfo.Process)
+			process, err := os.FindProcess(pid)
 			if err != nil {
 				return nil, err
 			}
