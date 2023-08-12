@@ -109,7 +109,7 @@ func ListToEnvironmentBlock(list *[]string) (*uint16, error) {
 
 // CreateProcessWithLogon creates a process giving user credentials
 // Ref: https://github.com/hosom/honeycred/blob/master/honeycred.go
-func CreateProcessWithLogon(username string, password string, domain string, path string, cmdLine string, workDir string) (*syscall.ProcessInformation, error) {
+func CreateProcessWithLogon(username string, password string, domain string, binPath string, cmdLine string, workDir string, hide bool) (*syscall.ProcessInformation, error) {
 	user, err := syscall.UTF16PtrFromString(username)
 	if err != nil {
 		return nil, err
@@ -123,7 +123,7 @@ func CreateProcessWithLogon(username string, password string, domain string, pat
 		return nil, err
 	}
 	logonFlags := logonWithProfile // changed
-	applicationName, err := syscall.UTF16PtrFromString(path)
+	applicationName, err := syscall.UTF16PtrFromString(binPath)
 	if err != nil {
 		return nil, err
 	}
@@ -144,6 +144,10 @@ func CreateProcessWithLogon(username string, password string, domain string, pat
 		return nil, err
 	}
 	startupInfo := &syscall.StartupInfo{}
+	if hide {
+		startupInfo.Flags = windows.STARTF_USESHOWWINDOW
+		startupInfo.ShowWindow = windows.SW_HIDE
+	}
 	processInfo := &syscall.ProcessInformation{}
 
 	err = CreateProcessWithLogonW(
