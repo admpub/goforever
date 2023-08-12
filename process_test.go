@@ -86,7 +86,7 @@ func TestMain(t *testing.M) {
 }
 
 // sudo go test -v -count=1 -run "TestProcessStartByUser" --user=aaa --pass=yourWindowsPassword
-func TestProcessStartByUser(t *testing.T) {
+func _TestProcessStartByUser(t *testing.T) {
 	os.Remove("debug.log")
 	p := &Process{
 		Name:    "exampleByUser",

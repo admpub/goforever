@@ -219,10 +219,10 @@ func (p *Process) Find() (*os.Process, string, error) {
 		return nil, "", fmt.Errorf(p.logPrefix()+"%w", ErrPidfileEmpty)
 	}
 	if pid := p.Pidfile.Read(); pid > 0 {
-		// proc, err := ps.FindProcess(pid)
-		// if err != nil || proc == nil {
-		// 	return nil, "", err
-		// }
+		proc, err := ps.FindProcess(pid)
+		if err != nil || proc == nil {
+			return nil, "", err
+		}
 		process, err := os.FindProcess(pid)
 		if err != nil {
 			return nil, "", err
