@@ -109,7 +109,7 @@ func ListToEnvironmentBlock(list *[]string) (*uint16, error) {
 
 // CreateProcessWithLogon creates a process giving user credentials
 // Ref: https://github.com/hosom/honeycred/blob/master/honeycred.go
-func CreateProcessWithLogon(username string, password string, domain string, binPath string, cmdLine string, workDir string, hide bool) (*syscall.ProcessInformation, error) {
+func CreateProcessWithLogon(username string, password string, domain string, binPath string, cmdLine string, workDir string, env []string, hide bool) (*syscall.ProcessInformation, error) {
 	user, err := syscall.UTF16PtrFromString(username)
 	if err != nil {
 		return nil, err
@@ -132,7 +132,7 @@ func CreateProcessWithLogon(username string, password string, domain string, bin
 		return nil, err
 	}
 	creationFlags := createDefaultErrorMode
-	environment, err := ListToEnvironmentBlock(nil)
+	environment, err := ListToEnvironmentBlock(&env)
 	if err != nil {
 		return nil, err
 	}
@@ -287,30 +287,3 @@ func GetTokenSessionId(token windows.Token) (sessionId uint32, err error) {
 	}
 	return
 }
-
-// func RunAs(user, pass string) (error) {
-// 	// Determine if running as SYSTEM
-// 	username, err := GetTokenUsername(windows.GetCurrentProcessToken())
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	// If we are running as SYSTEM, we can't call CreateProcess, must call LogonUserA -> CreateProcessAsUserA/CreateProcessWithTokenW
-// 	if username == `NT AUTHORITY\SYSTEM` {
-// 		token, err := LogonUser(user, pass, Logon32LogonInteractive)
-// 		if err != nil {
-// 			return err
-// 		}
-// 		_ = token
-// 		return err
-// 	}
-
-// 	var domain string
-// 	parts := strings.SplitN(user, `\`, 2)
-// 	if len(parts)==2 {
-// 		domain=parts[0]
-// 		user=parts[1]
-// 	}
-// 	_, err = CreateProcessWithLogon(user, pass, domain, ``,``,``)
-// 	return err
-// }

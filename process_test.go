@@ -63,7 +63,7 @@ func TestProcessStart(t *testing.T) {
 	//<-RunProcess(p.Name, p)
 	//time.Sleep(30 * time.Second)
 	ex := 0
-	r := p.X().Pid
+	r := p.Pid()
 	if ex >= r {
 		t.Errorf("Expected %#v < %#v\n", ex, r)
 	}
@@ -121,7 +121,7 @@ func _TestProcessStartByUser(t *testing.T) {
 	}
 	p.Start("exampleByUser") // 此测试用例必须用root身份执行，否则报错：fork/exec ./example: operation not permitted
 	ex := 0
-	r := p.X().Pid
+	r := p.Pid()
 	if ex >= r {
 		t.Errorf("Expected %#v < %#v\n", ex, r)
 	}

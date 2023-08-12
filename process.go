@@ -14,7 +14,6 @@ import (
 	"path/filepath"
 	"sync"
 	"sync/atomic"
-	"syscall"
 	"time"
 
 	"github.com/webx-top/com"
@@ -92,7 +91,7 @@ type Process struct {
 	statusMu sync.RWMutex
 	_status  string
 	xMu      sync.RWMutex
-	_x       *os.Process
+	_x       Processer
 	errMu    sync.RWMutex
 	_err     error
 }
@@ -128,13 +127,13 @@ func (p *Process) Status() string {
 	return status
 }
 
-func (p *Process) SetX(x *os.Process) {
+func (p *Process) SetX(x Processer) {
 	p.xMu.Lock()
 	p._x = x
 	p.xMu.Unlock()
 }
 
-func (p *Process) X() *os.Process {
+func (p *Process) X() Processer {
 	p.xMu.RLock()
 	x := p._x
 	p.xMu.RUnlock()
@@ -228,7 +227,7 @@ func (p *Process) Find() (*os.Process, string, error) {
 		if err != nil {
 			return nil, "", err
 		}
-		p.SetX(process)
+		p.SetX(&osProcess{Process: process})
 		atomic.StoreInt32(&p.pid, int32(process.Pid))
 		p.SetAndTriggerStatus(StatusRunning)
 		message := fmt.Sprintf(p.logPrefix()+"%s is %#v", p.Name, process.Pid)
@@ -266,17 +265,6 @@ func (p *Process) Start(name string) string {
 		Env:   append(os.Environ()[:], p.Env...),
 		Files: files,
 	}
-	if len(p.User) > 0 {
-		proc.Sys = &syscall.SysProcAttr{}
-		cleanup, err := SetSysProcAttr(proc.Sys, p.User, p.Options)
-		if err != nil {
-			err = errors.New(logPrefix + err.Error())
-			p.SetError(err)
-			log.Println(err.Error())
-			return ""
-		}
-		p.cleanup = cleanup
-	}
 	args := com.ParseArgs(p.Command)
 	args = append(args, p.Args...)
 	if filepath.Base(args[0]) == args[0] {
@@ -293,22 +281,22 @@ func (p *Process) Start(name string) string {
 		b, _ = json.MarshalIndent(proc, ``, `  `)
 		log.Println(logPrefix+"Attr:", string(b))
 	}
-	process, err := os.StartProcess(args[0], args, proc)
+	process, err := p.StartProcess(args[0], args, proc)
 	if err != nil {
 		err = errors.New(logPrefix + "Failed. " + err.Error())
 		p.SetError(err)
 		log.Println(err.Error())
 		return ""
 	}
-	err = p.Pidfile.Write(process.Pid)
+	err = p.Pidfile.Write(process.Pid())
 	if err != nil {
 		log.Printf(logPrefix+"Pidfile error: %v", err)
 		return ""
 	}
 	p.SetX(process)
-	atomic.StoreInt32(&p.pid, int32(process.Pid))
+	atomic.StoreInt32(&p.pid, int32(process.Pid()))
 	p.SetAndTriggerStatus(StatusStarted)
-	return fmt.Sprintf(logPrefix+"%s is %#v", p.Name, process.Pid)
+	return fmt.Sprintf(logPrefix+"%s is %#v", p.Name, process.Pid())
 }
 
 func (p *Process) logPrefix() string {
@@ -445,7 +433,7 @@ func (p *Process) watch() {
 		p.SetAndTriggerStatus(StatusRestarted)
 	case err := <-died:
 		p.release(StatusKilled)
-		log.Printf(p.logPrefix()+" %d %s killed = %#v\n", p.X().Pid, p.Name, err)
+		log.Printf(p.logPrefix()+" %d %s killed = %#v\n", p.Pid(), p.Name, err)
 	}
 }
 
