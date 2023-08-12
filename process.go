@@ -36,7 +36,7 @@ func RunProcess(name string, p *Process) chan *Process {
 	go func() {
 		proc, _, _ := p.Find()
 		if proc == nil {
-			log.Println(p.Start(name))
+			p.Start(name)
 		}
 		p.ping(ping, func(time time.Duration, p *Process) {
 			if atomic.LoadInt32(&p.pid) > 0 && atomic.LoadInt32(&p.respawns) > 0 {
@@ -311,7 +311,7 @@ func (p *Process) Start(name string) string {
 	p.SetX(process)
 	atomic.StoreInt32(&p.pid, int32(process.Pid()))
 	p.SetAndTriggerStatus(StatusStarted)
-	return fmt.Sprintf(logPrefix+"%s is started: %#v", p.Name, process.Pid())
+	return fmt.Sprintf(logPrefix+"Started: %#v", p.Name, process.Pid())
 }
 
 func (p *Process) logPrefix() string {
