@@ -34,7 +34,7 @@ func (p *Process) StartProcess(name string, argv []string, attr *os.ProcAttr) (P
 			password = com.String(v)
 		}
 
-		//* /
+		/* /
 		// Determine if running as SYSTEM
 		currentUser, err := GetTokenUsername(windows.GetCurrentProcessToken())
 		if err != nil {
@@ -72,12 +72,12 @@ func (p *Process) StartProcess(name string, argv []string, attr *os.ProcAttr) (P
 		//attr.CreationFlags = syscall.CREATE_NEW_PROCESS_GROUP
 		attr.Sys.Token = token
 		var closed bool
-		p.cleanup = func() {
+		p.addCleanup(func() {
 			if !closed {
 				closed = true
 				token.Close()
 			}
-		}
+		})
 	} else if hide {
 		if attr.Sys == nil {
 			attr.Sys = &syscall.SysProcAttr{}

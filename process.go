@@ -84,7 +84,7 @@ type Process struct {
 	respawns int32
 	children Children
 	hooks    map[string][]func(procs *Process)
-	cleanup  func()
+	cleanup  []func()
 	ctx      context.Context
 	cancel   context.CancelFunc
 
@@ -250,15 +250,30 @@ func (p *Process) Start(name string) string {
 		os.Stdout,
 		os.Stderr,
 	}
+	var openedFiles []*os.File
 	if len(p.Logfile) > 0 {
 		logDir := filepath.Dir(p.Logfile)
 		os.MkdirAll(logDir, os.ModePerm)
 		files[1] = NewLog(p.Logfile)
+		openedFiles = append(openedFiles, files[1])
 	}
 	if len(p.Errfile) > 0 {
 		logDir := filepath.Dir(p.Errfile)
 		os.MkdirAll(logDir, os.ModePerm)
 		files[2] = NewLog(p.Errfile)
+		openedFiles = append(openedFiles, files[2])
+	}
+	p.cleanup = []func(){}
+	if len(openedFiles) > 0 {
+		var cleaned bool
+		p.addCleanup(func() {
+			if !cleaned {
+				cleaned = true
+				for _, file := range openedFiles {
+					file.Close()
+				}
+			}
+		})
 	}
 	proc := &os.ProcAttr{
 		Dir:   p.Dir,
@@ -338,9 +353,13 @@ func (p *Process) release(status string) {
 	// 去掉删除pid文件的动作，用于goforever进程重启后继续监控，防止启动重复进程
 	//p.Pidfile.Delete()
 	p.SetAndTriggerStatus(status)
-	if p.cleanup != nil {
-		p.cleanup()
+	for _, cleanup := range p.cleanup {
+		cleanup()
 	}
+}
+
+func (p *Process) addCleanup(c func()) {
+	p.cleanup = append(p.cleanup, c)
 }
 
 // Restart the process
