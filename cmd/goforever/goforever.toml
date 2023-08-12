@@ -5,6 +5,7 @@ password = "forever"
 pidfile = "goforever.pid"
 logfile = "goforever.log"
 errfile = "goforever.log"
+debug = false
 
 [[process]]
 name = "example-panic"
@@ -21,11 +22,11 @@ name = "example"
 dir = "../../"
 env = ["aaa=aaa","bbb=bbb"]
 command = "./example/example"
-args = ["-name=foo"]
+args = ["--panic.delay=2s"]
 pidfile = "example/example.pid"
 logfile = "example/logs/example.debug.log"
 errfile = "example/logs/example.errors.log"
-respawn = 1
+respawn = 10
 
 [[process]]
 name = "ll"

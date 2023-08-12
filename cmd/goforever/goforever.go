@@ -90,7 +90,7 @@ func initDaemon() {
 		Logfile: config.Logfile,
 		Errfile: config.Errfile,
 		Respawn: 1,
-		Debug:   true,
+		Debug:   config.Debug,
 	}
 }
 
@@ -119,9 +119,9 @@ func Cli() string {
 			return message
 		}
 		if sub == "restart" {
-			ch, message := daemon.Restart()
+			proc, message := daemon.Restart()
 			fmt.Print(message)
-			return fmt.Sprintf("%s\n", <-ch)
+			return fmt.Sprintf("%s\n", proc)
 		}
 	} else {
 		path := fmt.Sprintf("/%s", name)
@@ -146,7 +146,7 @@ func RunDaemon() {
 	children := map[string]*goforever.Process{}
 	for _, name := range config.Keys() {
 		children[name] = config.Get(name)
-		children[name].Debug = true
+		children[name].Debug = config.Debug
 	}
 	daemon.SetChildren(children)
 	daemon.Run()

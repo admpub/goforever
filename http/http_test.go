@@ -48,7 +48,7 @@ func TestShowHandler(t *testing.T) {
 		"test": &goforever.Process{Name: "test"},
 	})
 	body, _ := newTestResponse("GET", "/test", nil)
-	e := []byte(`{"Name":"test","Command":"","Env":null,"Dir":"","Args":null,"User":"","HideWindow":false,"Pidfile":"","Logfile":"","Errfile":"","Respawn":0,"Delay":"","Ping":"","Debug":false,"Pid":0,"Status":""}`)
+	e := []byte(`{"Name":"test","Command":"","Env":null,"Dir":"","Args":null,"User":"","Pidfile":"","Logfile":"","Errfile":"","Respawn":0,"Delay":"","Ping":"","Debug":false,"Pid":0,"Status":""}`)
 	if !bytes.Equal(e, body) {
 		t.Errorf("\nExpected = %s\nResult = %s\n", e, body)
 	}
@@ -62,7 +62,7 @@ func TestPostHandler(t *testing.T) {
 	body, _ := newTestResponse("POST", "/test", nil)
 	b, _ := os.ReadFile(pidfile)
 	pid := string(b)
-	e := []byte(`{"Name":"test","Command":"/bin/echo","Env":null,"Dir":"","Args":["woohoo"],"User":"","HideWindow":false,"Pidfile":"` + pidfile + `","Logfile":"","Errfile":"","Respawn":0,"Delay":"","Ping":"","Debug":false,"Pid":` + pid + `,"Status":"started"}`)
+	e := []byte(`{"Name":"test","Command":"/bin/echo","Env":null,"Dir":"","Args":["woohoo"],"User":"","Pidfile":"` + pidfile + `","Logfile":"","Errfile":"","Respawn":0,"Delay":"","Ping":"","Debug":false,"Pid":` + pid + `,"Status":"started"}`)
 	if !bytes.Equal(e, body) {
 		t.Errorf("\nExpected = %s\nResult = %s\n", e, body)
 	}

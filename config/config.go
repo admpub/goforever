@@ -14,6 +14,7 @@ func NewProcess(config *Config) *goforever.Process {
 	p.Pidfile = config.Pidfile
 	p.Logfile = config.Logfile
 	p.Errfile = config.Errfile
+	p.Debug = config.Debug
 	return p
 }
 
@@ -30,6 +31,7 @@ type Config struct {
 	Password    string
 	Daemonize   bool
 	Pidfile     goforever.Pidfile
+	Debug       bool
 	Logfile     string
 	Errfile     string
 	TLSCertfile string
