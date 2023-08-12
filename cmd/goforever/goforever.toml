@@ -22,11 +22,11 @@ name = "example"
 dir = "../../"
 env = ["aaa=aaa","bbb=bbb"]
 command = "./example/example"
-args = ["--panic.delay=2s"]
+args = []
 pidfile = "example/example.pid"
 logfile = "example/logs/example.debug.log"
 errfile = "example/logs/example.errors.log"
-respawn = 10
+respawn = 5
 
 [[process]]
 name = "ll"
