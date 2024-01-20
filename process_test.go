@@ -53,6 +53,7 @@ func TestProcessStart(t *testing.T) {
 		Debug:   true,
 		Ping:    "1s",
 	}
+	p.Init()
 	bin := `./example/example`
 	cmd := exec.Command(`go`, `build`, `-o`, bin, `./example`)
 	err := cmd.Run()

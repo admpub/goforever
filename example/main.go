@@ -13,7 +13,7 @@ func main() {
 	panicDelay := flag.Duration(`panic.delay`, 0, `--panic.delay`)
 	flag.Parse()
 
-	fp, err := os.Create(`./example.log`)
+	fp, err := os.Create(`./example_` + panicDelay.String() + `.log`)
 	if err != nil {
 		panic(err)
 	}

@@ -13,7 +13,6 @@ import (
 
 func (p *Process) StartProcess(name string, argv []string, attr *os.ProcAttr) (Processer, error) {
 	if len(p.User) > 0 {
-		attr.Sys = &syscall.SysProcAttr{}
 		userInfo, err := user.Lookup(p.User)
 		if err != nil {
 			return nil, errors.New("failed to get user: " + err.Error())

@@ -5,3 +5,4 @@
 *.pid
 dist/
 example/example*
+cmd/goforever/goforever

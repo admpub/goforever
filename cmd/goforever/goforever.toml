@@ -5,17 +5,20 @@ password = "forever"
 pidfile = "goforever.pid"
 logfile = "goforever.log"
 errfile = "goforever.log"
-debug = false
+debug = true
+
 
 [[process]]
 name = "example-panic"
-command = "./example/example-panic"
+command = "./example/example"
+args = ["--panic.delay", "10s"]
 pidfile = "example/example-panic.pid"
 logfile = "example/logs/example-panic.debug.log"
 errfile = "example/logs/example-panic.errors.log"
-respawn = 1
+respawn = 10
 delay = "1m"
 ping = "30s"
+
 
 [[process]]
 name = "example"
@@ -34,7 +37,7 @@ dir = "../../"
 env = []
 command = "ls -alh ."
 args = []
-pidfile = "example/example.pid"
-logfile = "example/logs/example.debug.log"
-errfile = "example/logs/example.errors.log"
+pidfile = "example/ll.pid"
+logfile = "example/logs/ll.debug.log"
+errfile = "example/logs/ll.errors.log"
 respawn = 1

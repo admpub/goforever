@@ -66,9 +66,7 @@ func (p *Process) StartProcess(name string, argv []string, attr *os.ProcAttr) (P
 		if err != nil {
 			return nil, err
 		}
-		attr.Sys = &syscall.SysProcAttr{
-			HideWindow: hide,
-		}
+		attr.Sys.HideWindow = hide
 		//attr.CreationFlags = syscall.CREATE_NEW_PROCESS_GROUP
 		attr.Sys.Token = token
 		var closed bool

@@ -32,7 +32,7 @@ var daemon = &goforever.Process{
 }
 
 func TestListHandler(t *testing.T) {
-	daemon.SetChildren(goforever.Children{
+	daemon.SetChildren(map[string]*goforever.Process{
 		"test": &goforever.Process{Name: "test"},
 	})
 	body, _ := newTestResponse("GET", "/", nil)
@@ -44,7 +44,7 @@ func TestListHandler(t *testing.T) {
 }
 
 func TestShowHandler(t *testing.T) {
-	daemon.SetChildren(goforever.Children{
+	daemon.SetChildren(map[string]*goforever.Process{
 		"test": &goforever.Process{Name: "test"},
 	})
 	body, _ := newTestResponse("GET", "/test", nil)
@@ -56,7 +56,7 @@ func TestShowHandler(t *testing.T) {
 
 func TestPostHandler(t *testing.T) {
 	pidfile := filepath.Join(os.TempDir(), `goforeverTestEcho.pid`)
-	daemon.SetChildren(goforever.Children{
+	daemon.SetChildren(map[string]*goforever.Process{
 		"test": &goforever.Process{Name: "test", Command: "/bin/echo", Args: []string{"woohoo"}, Pidfile: goforever.Pidfile(pidfile)},
 	})
 	body, _ := newTestResponse("POST", "/test", nil)

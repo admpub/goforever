@@ -20,6 +20,7 @@ var conf = "goforever.toml"
 var config *cfg.Config
 var daemon *goforever.Process
 var version = `v0.0.1`
+var enableHTTP bool
 
 var Usage = func() {
 	fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
@@ -40,6 +41,7 @@ Commands
 
 func main() {
 	flag.StringVar(&conf, "conf", conf, "Path to config file.")
+	flag.BoolVar(&enableHTTP, "http", enableHTTP, "Enable HTTP server")
 	flag.Usage = Usage
 	flag.Parse()
 
@@ -73,25 +75,24 @@ func main() {
 		fmt.Printf("%s", Cli())
 		return
 	}
-	httpS := httpF.New(config, daemon)
 	if len(flag.Args()) == 0 {
 		RunDaemon()
-		httpS.HttpServer()
+		if enableHTTP {
+			httpF.New(config, daemon).HttpServer()
+		} else {
+			<-make(chan struct{})
+		}
 		return
 	}
 }
 
 func initDaemon() {
-	daemon = &goforever.Process{
-		Name:    "goforever",
-		Args:    []string{},
-		Command: filepath.Base(os.Args[0]),
-		Pidfile: config.Pidfile,
-		Logfile: config.Logfile,
-		Errfile: config.Errfile,
-		Respawn: 1,
-		Debug:   config.Debug,
-	}
+	daemon = goforever.NewProcess("goforever", filepath.Base(os.Args[0]))
+	daemon.Pidfile = config.Pidfile
+	daemon.Logfile = config.Logfile
+	daemon.Errfile = config.Errfile
+	daemon.Respawn = 1
+	daemon.Debug = config.Debug
 }
 
 func Cli() string {
@@ -145,7 +146,7 @@ func Cli() string {
 func RunDaemon() {
 	children := map[string]*goforever.Process{}
 	for _, name := range config.Keys() {
-		children[name] = config.Get(name)
+		children[name] = config.Get(name).Init()
 		children[name].Debug = config.Debug
 	}
 	daemon.SetChildren(children)

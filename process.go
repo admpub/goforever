@@ -34,7 +34,10 @@ func RunProcess(name string, p *Process) chan *Process {
 		<-ch
 	}()
 	go func() {
-		proc, _, _ := p.Find()
+		proc, _, err := p.Find()
+		if err != nil {
+			log.Println(err)
+		}
 		if proc == nil {
 			p.Start(name)
 		}
@@ -82,7 +85,7 @@ type Process struct {
 
 	pid      int32
 	respawns int32
-	children Children
+	children *Children
 	hooks    map[string][]func(procs *Process)
 	cleanup  []func()
 	ctx      context.Context
@@ -96,17 +99,18 @@ type Process struct {
 	_err     error
 }
 
-func (p *Process) Init() {
+func (p *Process) Init() *Process {
 	p.SetChildren(map[string]*Process{})
 	p.Options = buildOption(p.Options)
+	return p
 }
 
 func (p *Process) SetChildren(children map[string]*Process) {
-	p.children = children
+	p.children = NewChildren(children)
 }
 
 func (p *Process) SetChildKV(name string, proc *Process) {
-	p.children[name] = proc
+	p.children.Set(name, proc)
 }
 
 func (p *Process) SetStatus(status string, dontTriggerEvent ...bool) {
@@ -131,6 +135,7 @@ func (p *Process) SetX(x Processer) {
 	p.xMu.Lock()
 	p._x = x
 	p.xMu.Unlock()
+	atomic.StoreInt32(&p.pid, int32(x.Pid()))
 }
 
 func (p *Process) X() Processer {
@@ -218,7 +223,8 @@ func (p *Process) Find() (*os.Process, string, error) {
 	if len(p.Pidfile) == 0 {
 		return nil, "", fmt.Errorf(p.logPrefix()+"%w", ErrPidfileEmpty)
 	}
-	if pid := p.Pidfile.Read(); pid > 0 {
+	pid := p.Pidfile.Read()
+	if pid > 0 {
 		proc, err := ps.FindProcess(pid)
 		if err != nil || proc == nil {
 			return nil, "", err
@@ -228,9 +234,11 @@ func (p *Process) Find() (*os.Process, string, error) {
 			return nil, "", err
 		}
 		p.SetX(&osProcess{Process: process})
-		atomic.StoreInt32(&p.pid, int32(process.Pid))
 		p.SetAndTriggerStatus(StatusRunning)
 		message := fmt.Sprintf(p.logPrefix()+"%s is %#v", p.Name, process.Pid)
+		if p.Debug {
+			log.Println(message)
+		}
 		return process, message, nil
 	}
 	message := fmt.Sprintf(p.logPrefix()+"%s not running.", p.Name)
@@ -279,6 +287,7 @@ func (p *Process) Start(name string) string {
 		Dir:   p.Dir,
 		Env:   append(os.Environ()[:], p.Env...),
 		Files: files,
+		Sys:   NewSysProcAttr(),
 	}
 	args := com.ParseArgs(p.Command)
 	args = append(args, p.Args...)
@@ -291,10 +300,8 @@ func (p *Process) Start(name string) string {
 		}
 	}
 	if p.Debug {
-		b, _ := json.MarshalIndent(args, ``, `  `)
-		log.Println(logPrefix+"Args:", string(b))
-		b, _ = json.MarshalIndent(proc, ``, `  `)
-		log.Println(logPrefix+"Attr:", string(b))
+		log.Println(logPrefix+"Command:", args)
+		log.Printf(logPrefix+"Attr: %+v", *proc)
 	}
 	process, err := p.StartProcess(args[0], args, proc)
 	if err != nil {
@@ -309,7 +316,6 @@ func (p *Process) Start(name string) string {
 		return ""
 	}
 	p.SetX(process)
-	atomic.StoreInt32(&p.pid, int32(process.Pid()))
 	p.SetAndTriggerStatus(StatusStarted)
 	return fmt.Sprintf(logPrefix+"Started: %#v", p.Name, process.Pid())
 }
@@ -349,7 +355,7 @@ func (p *Process) release(status string) {
 	if x != nil {
 		x.Release()
 	}
-	p.pid = 0
+	atomic.StoreInt32(&p.pid, 0)
 	// 去掉删除pid文件的动作，用于goforever进程重启后继续监控，防止启动重复进程
 	//p.Pidfile.Delete()
 	p.SetAndTriggerStatus(status)
@@ -469,9 +475,7 @@ func (p *Process) watch() {
 
 // Run child processes
 func (p *Process) Run() {
-	for name, p := range p.children {
-		RunProcess(name, p)
-	}
+	p.children.Run()
 }
 
 func (p *Process) StartChild(name string) (*Process, error) {
@@ -510,13 +514,28 @@ func (p *Process) StopChild(name string) error {
 	return nil
 }
 
+func (p *Process) IsRunning(name string) bool {
+	cp := p.Child(name)
+	if cp == nil {
+		return false
+	}
+	ps, _, _ := cp.Find()
+	if ps == nil {
+		return false
+	}
+	return ps.Pid > 0
+}
+
 func (p *Process) Child(name string) *Process {
 	return p.children.Get(name)
 }
 
 func (p *Process) Add(name string, procs *Process, run ...bool) *Process {
 	p.StopChild(name)
-	p.children[name] = procs
+	if procs.children == nil {
+		procs.children = NewChildren(nil)
+	}
+	p.children.Set(name, procs)
 	if len(run) > 0 && run[0] {
 		RunProcess(name, procs)
 	}

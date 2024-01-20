@@ -57,6 +57,10 @@ func Add(name string, procs *Process, run ...bool) *Process {
 	return Default.Add(name, procs, run...)
 }
 
+func IsRunning(name string) bool {
+	return Default.IsRunning(name)
+}
+
 func Run() {
 	Default.Run()
 }
