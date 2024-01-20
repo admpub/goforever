@@ -19,7 +19,7 @@ import (
 var conf = "goforever.toml"
 var config *cfg.Config
 var daemon *goforever.Process
-var version = `v0.0.1`
+var version = `v0.3.0`
 var enableHTTP bool
 
 var Usage = func() {
