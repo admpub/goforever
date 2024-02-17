@@ -1,6 +1,7 @@
 package goforever
 
 import (
+	"context"
 	"log"
 	"os"
 	"path/filepath"
@@ -71,6 +72,9 @@ func (p *Process) Rotate(keepNum int) {
 }
 
 func (p *Process) DailyRotate(keepNum int) {
+	if p.ctx == nil {
+		p.ctx, p.cancel = context.WithCancel(context.Background())
+	}
 	now := time.Now()
 	tomorrow := now.AddDate(0, 0, 1)
 	nxt := time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(), 0, 0, 0, 0, time.Local)
