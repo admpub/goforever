@@ -21,7 +21,9 @@ type Children struct {
 
 // String Stringify
 func (c Children) String() string {
-	js, err := json.Marshal(c)
+	c.l.RLock()
+	js, err := json.Marshal(c.m)
+	c.l.RUnlock()
 	if err != nil {
 		log.Println(err)
 		return ""
@@ -85,4 +87,12 @@ func (c Children) Stop(names ...string) {
 	c.l.Lock()
 	delete(c.m, name)
 	c.l.Unlock()
+}
+
+func (c Children) Rotate(keepNum int) {
+	c.l.RLock()
+	for _, p := range c.m {
+		p.Rotate(keepNum)
+	}
+	c.l.RUnlock()
 }

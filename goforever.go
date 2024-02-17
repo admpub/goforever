@@ -15,11 +15,12 @@ func NewProcess(name string, command string, args ...string) *Process {
 		command = os.Args[0]
 	}
 	p := &Process{
-		Name:    name,
-		Args:    args,
-		Command: command,
-		Respawn: 1,
-		Pidfile: Pidfile(name + `.pid`),
+		Name:       name,
+		Args:       args,
+		Command:    command,
+		Respawn:    1,
+		Pidfile:    Pidfile(name + `.pid`),
+		logKeepNum: 7,
 	}
 	p.Init()
 	return p

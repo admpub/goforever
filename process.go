@@ -83,13 +83,14 @@ type Process struct {
 	// HideWindow bool // for windows
 	Options map[string]interface{} `json:",omitempty" xml:",omitempty"`
 
-	pid      int32
-	respawns int32
-	children *Children
-	hooks    map[string][]func(procs *Process)
-	cleanup  []func()
-	ctx      context.Context
-	cancel   context.CancelFunc
+	pid        int32
+	respawns   int32
+	children   *Children
+	hooks      map[string][]func(procs *Process)
+	cleanup    []func()
+	ctx        context.Context
+	cancel     context.CancelFunc
+	logKeepNum int
 
 	statusMu sync.RWMutex
 	_status  string
@@ -111,6 +112,14 @@ func (p *Process) SetChildren(children map[string]*Process) {
 
 func (p *Process) SetChildKV(name string, proc *Process) {
 	p.children.Set(name, proc)
+}
+
+func (p *Process) SetLogKeepNum(keepNum int) {
+	p.logKeepNum = keepNum
+}
+
+func (p *Process) LogKeepNum() int {
+	return p.logKeepNum
 }
 
 func (p *Process) SetStatus(status string, dontTriggerEvent ...bool) {
@@ -341,8 +350,8 @@ func (p *Process) Stop() string {
 		} else {
 			log.Println(logPrefix + " Stop command seemed to work")
 		}
-		p.children.Stop()
 	}
+	p.children.Stop()
 	p.release(StatusStopped)
 	message := fmt.Sprintf(logPrefix + " Stopped.")
 	return message
@@ -476,6 +485,9 @@ func (p *Process) watch() {
 // Run child processes
 func (p *Process) Run() {
 	p.children.Run()
+	if p.logKeepNum > 0 {
+		go p.DailyRotate(p.logKeepNum)
+	}
 }
 
 func (p *Process) StartChild(name string) (*Process, error) {
