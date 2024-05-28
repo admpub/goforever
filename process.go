@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/webx-top/com"
@@ -339,9 +340,16 @@ func (p *Process) Stop() string {
 	logPrefix := p.logPrefix()
 	x := p.X()
 	if x != nil {
+		var err error
 		// Initial code has the following comment: "p.x.Kill() this seems to cause trouble"
 		// I want this to work on windows where AFAIK the existing code was not portable
-		if err := x.Kill(); err != nil { //err := syscall.Kill(p.x.Pid, syscall.SIGTERM)
+		pid := p.Pid()
+		if pid > 0 {
+			err = syscall.Kill(pid, syscall.SIGTERM)
+		} else {
+			err = x.Kill()
+		}
+		if err != nil {
 			if !errors.Is(err, os.ErrProcessDone) {
 				err = errors.New(logPrefix + err.Error())
 				p.SetError(err)
