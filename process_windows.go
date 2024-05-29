@@ -89,16 +89,6 @@ func (p *Process) StartProcess(name string, argv []string, attr *os.ProcAttr) (P
 	return &osProcess{Process: process}, nil
 }
 
-func (p *Process) kill() error {
-	x := p.X()
-	if x == nil {
-		return nil
-	}
-	// Initial code has the following comment: "p.x.Kill() this seems to cause trouble"
-	// I want this to work on windows where AFAIK the existing code was not portable
-	return x.Kill()
-}
-
 type osProcess struct {
 	*os.Process
 }
