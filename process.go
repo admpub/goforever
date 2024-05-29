@@ -341,7 +341,9 @@ func (p *Process) Stop() string {
 	if x != nil {
 		// Initial code has the following comment: "p.x.Kill() this seems to cause trouble"
 		// I want this to work on windows where AFAIK the existing code was not portable
-		if err := x.Kill(); err != nil { //err := syscall.Kill(p.x.Pid, syscall.SIGTERM)
+		// err := syscall.Kill(p.x.Pid, syscall.SIGTERM)
+		err := x.Kill()
+		if err != nil {
 			if !errors.Is(err, os.ErrProcessDone) {
 				err = errors.New(logPrefix + err.Error())
 				p.SetError(err)
