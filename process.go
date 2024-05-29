@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -337,25 +338,24 @@ func (p *Process) logPrefix() string {
 func (p *Process) Stop() string {
 	p.SetError(nil)
 	logPrefix := p.logPrefix()
+	pid := p.Pid()
+	pidStr := strconv.Itoa(pid)
 	x := p.X()
 	if x != nil {
-		// Initial code has the following comment: "p.x.Kill() this seems to cause trouble"
-		// I want this to work on windows where AFAIK the existing code was not portable
-		// err := syscall.Kill(p.x.Pid, syscall.SIGTERM)
-		err := x.Kill()
+		err := p.kill()
 		if err != nil {
 			if !errors.Is(err, os.ErrProcessDone) {
-				err = errors.New(logPrefix + err.Error())
+				err = errors.New(logPrefix + "[PID:" + pidStr + "]" + err.Error())
 				p.SetError(err)
 				log.Println(err.Error())
 			}
 		} else {
-			log.Println(logPrefix + " Stop command seemed to work")
+			log.Println(logPrefix + "[PID:" + pidStr + "] Stop command seemed to work")
 		}
 	}
 	p.children.Stop()
 	p.release(StatusStopped)
-	message := fmt.Sprintf(logPrefix + " Stopped.")
+	message := fmt.Sprintf(logPrefix + "[PID:" + pidStr + "] Stopped.")
 	return message
 }
 
