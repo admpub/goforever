@@ -38,6 +38,10 @@ func (p *Process) StartProcess(name string, argv []string, attr *os.ProcAttr) (P
 	return &osProcess{Process: process}, nil
 }
 
+func (p *Process) kill() error {
+	return syscall.Kill(p.Pid(), syscall.SIGTERM)
+}
+
 type osProcess struct {
 	*os.Process
 }
