@@ -99,6 +99,7 @@ type Process struct {
 	_x       Processer
 	errMu    sync.RWMutex
 	_err     error
+	parent   *Process
 }
 
 func (p *Process) Init() *Process {
@@ -112,6 +113,7 @@ func (p *Process) SetChildren(children map[string]*Process) {
 }
 
 func (p *Process) SetChildKV(name string, proc *Process) {
+	proc.parent = p
 	p.children.Set(name, proc)
 }
 
@@ -198,12 +200,20 @@ func (p *Process) RunHook(status string) {
 			p.cancel()
 		}
 	}
-	if p.hooks == nil {
-		return
+	if p.hooks != nil {
+		if fnList, ok := p.hooks[status]; ok {
+			for _, f := range fnList {
+				f(p)
+			}
+		}
 	}
-	if fnList, ok := p.hooks[status]; ok {
-		for _, f := range fnList {
-			f(p)
+	if p.parent != nil {
+		if p.parent.hooks != nil {
+			if fnList, ok := p.parent.hooks[status]; ok {
+				for _, f := range fnList {
+					f(p)
+				}
+			}
 		}
 	}
 }
@@ -551,7 +561,7 @@ func (p *Process) Add(name string, procs *Process, run ...bool) *Process {
 	if procs.children == nil {
 		procs.children = NewChildren(nil)
 	}
-	p.children.Set(name, procs)
+	p.SetChildKV(name, procs)
 	if len(run) > 0 && run[0] {
 		RunProcess(name, procs)
 	}
