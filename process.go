@@ -200,6 +200,10 @@ func (p *Process) RunHook(status string) {
 			p.cancel()
 		}
 	}
+	p.runHook(status)
+}
+
+func (p *Process) runHook(status string) {
 	if p.hooks != nil {
 		if fnList, ok := p.hooks[status]; ok {
 			for _, f := range fnList {
@@ -208,13 +212,7 @@ func (p *Process) RunHook(status string) {
 		}
 	}
 	if p.parent != nil {
-		if p.parent.hooks != nil {
-			if fnList, ok := p.parent.hooks[status]; ok {
-				for _, f := range fnList {
-					f(p)
-				}
-			}
-		}
+		p.parent.runHook(status)
 	}
 }
 
