@@ -200,19 +200,19 @@ func (p *Process) RunHook(status string) {
 			p.cancel()
 		}
 	}
-	p.runHook(status)
+	p.runHook(status, p)
 }
 
-func (p *Process) runHook(status string) {
+func (p *Process) runHook(status string, proc *Process) {
 	if p.hooks != nil {
 		if fnList, ok := p.hooks[status]; ok {
 			for _, f := range fnList {
-				f(p)
+				f(proc)
 			}
 		}
 	}
 	if p.parent != nil {
-		p.parent.runHook(status)
+		p.parent.runHook(status, proc)
 	}
 }
 
