@@ -145,7 +145,9 @@ func (p *Process) SetX(x Processer) {
 	p.xMu.Lock()
 	p._x = x
 	p.xMu.Unlock()
-	atomic.StoreInt32(&p.pid, int32(x.Pid()))
+	if x != nil {
+		atomic.StoreInt32(&p.pid, int32(x.Pid()))
+	}
 }
 
 func (p *Process) X() Processer {
