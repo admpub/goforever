@@ -163,9 +163,9 @@ func (p *Process) Pid() int {
 func (p *Process) Reset() error {
 	log.Println(p.Stop())
 	p.hooks = make(map[string][]func(procs *Process), 0)
-	p._x = nil
-	p.respawns = 0
-	return p._err
+	p.SetX(nil)
+	atomic.StoreInt32(&p.respawns, 0)
+	return p.Error()
 }
 
 func (p *Process) SetError(err error) {
@@ -355,7 +355,7 @@ func (p *Process) Stop() string {
 	}
 	p.children.Stop()
 	p.release(StatusStopped)
-	message := fmt.Sprintf(logPrefix + "[PID:" + pidStr + "] Stopped.")
+	message := logPrefix + "[PID:" + pidStr + "] Stopped."
 	return message
 }
 
